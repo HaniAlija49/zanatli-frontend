@@ -34,6 +34,9 @@ import { forkJoin } from 'rxjs';
   ],
   template: `
     <div class="contractor-detail-container" *ngIf="!isLoading; else loading">
+      <button mat-icon-button class="back-btn" [routerLink]="['/contractors']" aria-label="Back to list">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
       <mat-card class="profile-card" *ngIf="contractor">
         <div class="profile-header">
           <div class="profile-image">
@@ -52,45 +55,61 @@ import { forkJoin } from 'rxjs';
         </div>
 
         <mat-card-content>
-          <div class="contact-info">
-            <div class="location">
-              <mat-icon>location_on</mat-icon>
-              <span>{{contractor.location}}</span>
+          <div class="contact-info-card">
+            <div class="section-header">
+              <mat-icon>contact_phone</mat-icon>
+              <span>Contact Information</span>
             </div>
-            <div class="contact" *ngIf="contractor.phone">
-              <mat-icon>phone</mat-icon>
-              <span>{{contractor.phone}}</span>
-            </div>
-            <div class="email">
-              <mat-icon>email</mat-icon>
-              <span>{{contractor.email}}</span>
+            <div class="contact-info">
+              <div class="location">
+                <mat-icon>location_on</mat-icon>
+                <span>{{contractor.location}}</span>
+              </div>
+              <div class="contact" *ngIf="contractor.phone">
+                <mat-icon>phone</mat-icon>
+                <span>{{contractor.phone}}</span>
+              </div>
+              <div class="email">
+                <mat-icon>email</mat-icon>
+                <span>{{contractor.email}}</span>
+              </div>
             </div>
           </div>
 
           <mat-divider></mat-divider>
-          
+
           <div class="bio-section">
-            <h3>About</h3>
-            <p>{{contractor.bio || 'No bio provided'}}</p>
+            <div class="section-header">
+              <mat-icon>info</mat-icon>
+              <span>About</span>
+            </div>
+            <div class="bio-content">
+              <p>{{contractor.bio || 'No bio provided'}}</p>
+            </div>
           </div>
 
           <mat-divider></mat-divider>
 
           <div class="services-section">
-            <h3>Services Offered</h3>
-            <div class="services">
-              <mat-chip *ngFor="let service of contractor.services" 
-                       color="primary" 
-                       selected
-                       class="service-chip">
-                <mat-icon class="service-icon">build</mat-icon>
-                {{service}}
+            <div class="section-header">
+              <mat-icon>build_circle</mat-icon>
+              <span>Services Offered</span>
+            </div>
+            <div class="services-chips-bg">
+              <mat-chip *ngFor="let service of contractor.services" color="primary" selected class="service-chip">
+                <span class="chip-content">
+                  <mat-icon class="service-icon">build</mat-icon>
+                  {{service}}
+                </span>
               </mat-chip>
             </div>
           </div>
 
           <div class="portfolio-section" *ngIf="portfolioPhotos.length > 0">
-            <h3>Portfolio</h3>
+            <div class="section-header">
+              <mat-icon>collections</mat-icon>
+              <span>Portfolio</span>
+            </div>
             <div class="portfolio-grid">
               <div class="portfolio-item" *ngFor="let photo of portfolioPhotos">
                 <img [src]="photo.url" [alt]="'Portfolio image ' + photo.id">
@@ -127,6 +146,22 @@ import { forkJoin } from 'rxjs';
       padding: 2rem;
       max-width: 900px;
       margin: 0 auto;
+      position: relative;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 1.2rem;
+      left: 1.2rem;
+      z-index: 2;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: background 0.2s;
+    }
+
+    .back-btn:hover {
+      background: #e3f2fd;
     }
 
     .profile-card {
@@ -179,14 +214,19 @@ import { forkJoin } from 'rxjs';
       }
     }
 
+    .contact-info-card {
+      background: #f5faff;
+      border-radius: 10px;
+      padding: 1.2rem 1.5rem 1.2rem 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.06);
+    }
+
     .contact-info {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
-      padding: 1.5rem;
-      background: #f8f9fa;
-      border-radius: 8px;
-      margin: 1.5rem 0;
+      margin-top: 0.7rem;
     }
 
     .location, .contact, .email {
@@ -194,38 +234,77 @@ import { forkJoin } from 'rxjs';
       align-items: center;
       gap: 0.5rem;
       color: #666;
-
-      mat-icon {
-        color: #1976d2;
-      }
     }
 
-    .bio-section, .services-section, .portfolio-section {
+    .location mat-icon, .contact mat-icon, .email mat-icon {
+      color: #1976d2;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1976d2;
+      margin-bottom: 0.7rem;
+    }
+
+    .bio-section {
       margin: 2rem 0;
       padding: 0 1.5rem;
     }
 
-    h3 {
-      color: #333;
-      margin-bottom: 1.5rem;
-      font-size: 1.25rem;
-      font-weight: 500;
+    .bio-content {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1.2rem;
+      color: #444;
+      font-size: 1.08rem;
+      min-height: 2.5em;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
-    .services {
+    .services-section {
+      margin: 2rem 0;
+      padding: 0 1.5rem;
+    }
+
+    .services-chips-bg {
+      background: #f5faff;
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
       display: flex;
       flex-wrap: wrap;
-      gap: 0.75rem;
+      gap: 0.7rem;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.04);
     }
 
     .service-chip {
       padding: 0.5rem 1rem;
       border-radius: 20px;
-      
-      .service-icon {
-        margin-right: 0.5rem;
-        font-size: 18px;
-      }
+      background: #e3f2fd;
+      color: #1976d2;
+      font-weight: 500;
+      font-size: 1.01rem;
+    }
+
+    .chip-content {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .service-icon {
+      font-size: 18px;
+      margin-right: 0.3rem;
+      padding: 0;
+      vertical-align: middle;
+    }
+
+    .portfolio-section {
+      margin: 2rem 0;
+      padding: 0 1.5rem;
     }
 
     .portfolio-grid {
@@ -240,12 +319,12 @@ import { forkJoin } from 'rxjs';
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
 
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
+    .portfolio-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .actions {
@@ -258,10 +337,21 @@ import { forkJoin } from 'rxjs';
 
     .create-job-btn, .contact-btn {
       padding: 0.5rem 1.5rem;
-      
-      mat-icon {
-        margin-right: 0.5rem;
-      }
+      font-weight: 600;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+      background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%);
+      color: #fff;
+      transition: background 0.2s;
+    }
+
+    .create-job-btn mat-icon, .contact-btn mat-icon {
+      margin-right: 0.5rem;
+    }
+
+    .create-job-btn:hover, .contact-btn:hover {
+      background: linear-gradient(90deg, #1565c0 0%, #1976d2 100%);
+      color: #fff;
     }
 
     .loading-container {
@@ -285,10 +375,6 @@ import { forkJoin } from 'rxjs';
 
       .contact-info {
         grid-template-columns: 1fr;
-      }
-
-      .portfolio-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       }
 
       .actions {
