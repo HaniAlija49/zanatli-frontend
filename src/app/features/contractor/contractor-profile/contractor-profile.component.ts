@@ -13,6 +13,8 @@ import { ContractorService } from '../../../core/services/contractor.service';
 import { ContractorProfile, CreateContractorProfileDto, UpdateContractorProfileDto } from '../../../core/models/contractor.models';
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { MatChipInputEvent } from '@angular/material/chips';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-contractor-profile',
@@ -36,6 +38,14 @@ import { MatChipInputEvent } from '@angular/material/chips';
           <mat-card-title>{{isEditing ? 'Edit Profile' : 'Create Profile'}}</mat-card-title>
         </mat-card-header>
         <mat-card-content>
+          <div class="photo-section">
+            <img *ngIf="profilePhotoUrl" [src]="profilePhotoUrl" class="profile-photo" alt="Profile Photo">
+            <input type="file" accept="image/*" (change)="onPhotoSelected($event)" id="profilePhotoInput" hidden>
+            <button mat-stroked-button color="primary" (click)="triggerPhotoInput()">
+              {{ profilePhotoUrl ? 'Change Photo' : 'Upload Photo' }}
+            </button>
+            <mat-spinner *ngIf="isPhotoUploading" diameter="24"></mat-spinner>
+          </div>
           <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Full Name</mat-label>
@@ -118,6 +128,19 @@ import { MatChipInputEvent } from '@angular/material/chips';
       display: inline-block;
       margin-right: 8px;
     }
+    .photo-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .profile-photo {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #ccc;
+    }
   `]
 })
 export class ContractorProfileComponent implements OnInit {
@@ -127,11 +150,14 @@ export class ContractorProfileComponent implements OnInit {
   profile: ContractorProfile | null = null;
   services: string[] = [];
   readonly separatorKeysCodes = [ENTER, COMMA] as const;
+  profilePhotoUrl: string | null = null;
+  isPhotoUploading = false;
 
   constructor(
     private fb: FormBuilder,
     private contractorService: ContractorService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private http: HttpClient
   ) {
     this.profileForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(2)]],
@@ -144,6 +170,7 @@ export class ContractorProfileComponent implements OnInit {
 
   ngOnInit() {
     this.loadProfile();
+    this.loadProfilePhoto();
   }
 
   loadProfile() {
@@ -170,6 +197,45 @@ export class ContractorProfileComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  loadProfilePhoto() {
+    // Try to load the profile photo (type=0)
+    this.http.get<any[]>(`${environment.apiUrl}/contractors/me/photos`).subscribe({
+      next: (photos) => {
+        const profilePhoto = photos.find(p => p.type === 0);
+        this.profilePhotoUrl = profilePhoto ? profilePhoto.url : null;
+      },
+      error: () => {
+        this.profilePhotoUrl = null;
+      }
+    });
+  }
+
+  triggerPhotoInput() {
+    const input = document.getElementById('profilePhotoInput') as HTMLInputElement;
+    if (input) input.click();
+  }
+
+  onPhotoSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      this.isPhotoUploading = true;
+      this.http.post(`${environment.apiUrl}/contractors/me/photos?type=0`, formData).subscribe({
+        next: (res: any) => {
+          this.snackBar.open('Profile photo uploaded!', 'Close', { duration: 3000 });
+          this.profilePhotoUrl = res.url || URL.createObjectURL(file);
+          this.isPhotoUploading = false;
+        },
+        error: () => {
+          this.snackBar.open('Failed to upload photo.', 'Close', { duration: 3000 });
+          this.isPhotoUploading = false;
+        }
+      });
+    }
   }
 
   addService(event: MatChipInputEvent): void {
