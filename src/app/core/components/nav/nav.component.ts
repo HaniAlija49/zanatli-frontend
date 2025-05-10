@@ -50,9 +50,10 @@ import { User } from '../../models/auth.models';
           </ng-container>
 
           <ng-container *ngIf="isContractor">
-            <a mat-button routerLink="/contractor/dashboard">Dashboard</a>
+            <a mat-button routerLink="/contractor">Dashboard</a>
             <a mat-button routerLink="/contractor/jobs">My Jobs</a>
             <a mat-button routerLink="/contractor/profile">Profile</a>
+            <a mat-button [routerLink]="'/contractor/profile'" fragment="portfolio">Portfolio</a>
           </ng-container>
 
           <button mat-icon-button [matMenuTriggerFor]="userMenu">
@@ -94,7 +95,7 @@ import { User } from '../../models/auth.models';
             </ng-container>
 
             <ng-container *ngIf="isContractor">
-              <a mat-list-item routerLink="/contractor/dashboard" (click)="sidenav.close()">
+              <a mat-list-item routerLink="/contractor" (click)="sidenav.close()">
                 <mat-icon>dashboard</mat-icon>
                 <span>Dashboard</span>
               </a>
@@ -105,6 +106,10 @@ import { User } from '../../models/auth.models';
               <a mat-list-item routerLink="/contractor/profile" (click)="sidenav.close()">
                 <mat-icon>person</mat-icon>
                 <span>Profile</span>
+              </a>
+              <a mat-list-item [routerLink]="'/contractor/profile'" fragment="portfolio" (click)="sidenav.close()">
+                <mat-icon>collections</mat-icon>
+                <span>Portfolio</span>
               </a>
             </ng-container>
 
@@ -205,8 +210,8 @@ export class NavComponent implements OnInit {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       this.isLoggedIn = !!user;
-      this.isClient = user?.roles.includes('Client') ?? false;
-      this.isContractor = user?.roles.includes('Contractor') ?? false;
+      this.isClient = user?.roles.some(r => r.toLowerCase() === 'client') ?? false;
+      this.isContractor = user?.roles.some(r => r.toLowerCase() === 'contractor') ?? false;
     });
   }
 

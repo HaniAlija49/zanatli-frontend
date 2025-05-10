@@ -24,7 +24,7 @@ export const routes: Routes = [
     path: 'client',
     canActivate: [authGuard],
     canActivateChild: [roleGuard],
-    data: { roles: ['Client'] },
+    data: { roles: ['client'] },
     children: [
       {
         path: '',
@@ -40,7 +40,7 @@ export const routes: Routes = [
     path: 'contractor',
     canActivate: [authGuard],
     canActivateChild: [roleGuard],
-    data: { roles: ['Contractor'] },
+    data: { roles: ['contractor'] },
     children: [
       {
         path: '',

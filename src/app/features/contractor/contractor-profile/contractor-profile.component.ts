@@ -9,12 +9,14 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog } from '@angular/material/dialog';
 import { ContractorService } from '../../../core/services/contractor.service';
 import { ContractorProfile, CreateContractorProfileDto, UpdateContractorProfileDto } from '../../../core/models/contractor.models';
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { PhotoPreviewComponent } from './photo-preview/photo-preview.component';
 
 @Component({
   selector: 'app-contractor-profile',
@@ -35,60 +37,96 @@ import { environment } from '../../../../environments/environment';
     <div class="profile-container">
       <mat-card>
         <mat-card-header>
-          <mat-card-title>{{isEditing ? 'Edit Profile' : 'Create Profile'}}</mat-card-title>
+          <mat-card-title>{{isEditing ? 'Edit Profile' : (profile ? 'My Profile' : 'Create Profile')}}</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <div class="photo-section">
-            <img *ngIf="profilePhotoUrl" [src]="profilePhotoUrl" class="profile-photo" alt="Profile Photo">
-            <input type="file" accept="image/*" (change)="onPhotoSelected($event)" id="profilePhotoInput" hidden>
-            <button mat-stroked-button color="primary" (click)="triggerPhotoInput()">
-              {{ profilePhotoUrl ? 'Change Photo' : 'Upload Photo' }}
-            </button>
-            <mat-spinner *ngIf="isPhotoUploading" diameter="24"></mat-spinner>
+          <!-- Loading State -->
+          <div *ngIf="isLoading" class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
           </div>
 
-          <div class="portfolio-section">
-            <div class="portfolio-header">
-              <span>Portfolio Images</span>
-              <input type="file" accept="image/*" (change)="onPortfolioSelected($event)" id="portfolioInput" hidden>
-              <button mat-stroked-button color="primary" (click)="triggerPortfolioInput()">
-                Add Image
-              </button>
-              <mat-spinner *ngIf="isPortfolioUploading" diameter="24"></mat-spinner>
-            </div>
-            <div class="portfolio-images">
-              <div *ngFor="let img of portfolioImages" class="portfolio-img-wrapper">
-                <img [src]="img.url" class="portfolio-img" alt="Portfolio Image">
-                <button mat-icon-button color="warn" (click)="deletePortfolioImage(img.id)">
-                  <mat-icon>delete</mat-icon>
+          <!-- View Mode -->
+          <div *ngIf="!isLoading && profile && !isEditing" class="profile-view">
+            <div class="profile-header">
+              <div class="photo-section">
+                <div class="profile-photo-wrapper" (click)="previewPhoto(profilePhotoUrl, 'profile')">
+                  <img *ngIf="profilePhotoUrl" [src]="profilePhotoUrl" class="profile-photo" alt="Profile Photo">
+                  <div *ngIf="!profilePhotoUrl" class="profile-photo-placeholder">
+                    <mat-icon>person</mat-icon>
+                  </div>
+                </div>
+                <input type="file" accept="image/*" (change)="onPhotoSelected($event)" id="profilePhotoInput" hidden>
+                <button mat-stroked-button color="primary" (click)="triggerPhotoInput()">
+                  {{ profilePhotoUrl ? 'Change Photo' : 'Upload Photo' }}
                 </button>
+                <mat-spinner *ngIf="isPhotoUploading" diameter="24"></mat-spinner>
+              </div>
+              <div class="profile-info">
+                <h2>{{profile.fullName}}</h2>
+                <p class="company-name">{{profile.companyName}}</p>
+                <p class="location"><mat-icon>location_on</mat-icon> {{profile.location}}</p>
               </div>
             </div>
+
+            <div class="profile-section">
+              <h3>About</h3>
+              <p>{{profile.bio || 'No bio provided'}}</p>
+            </div>
+
+            <div class="profile-section">
+              <h3>Services</h3>
+              <div class="services-list">
+                <mat-chip *ngFor="let service of services">{{service}}</mat-chip>
+              </div>
+            </div>
+
+            <div class="profile-section">
+              <h3>Portfolio</h3>
+              <div class="portfolio-images">
+                <div *ngFor="let img of portfolioImages" class="portfolio-img-wrapper">
+                  <img [src]="img.url" class="portfolio-img" alt="Portfolio Image" (click)="previewPhoto(img.url, 'portfolio')">
+                  <button mat-icon-button color="warn" (click)="deletePortfolioImage(img.id)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+                <div class="add-portfolio">
+                  <input type="file" accept="image/*" (change)="onPortfolioSelected($event)" id="portfolioInput" hidden>
+                  <button mat-stroked-button color="primary" (click)="triggerPortfolioInput()">
+                    <mat-icon>add_photo_alternate</mat-icon>
+                    Add Image
+                  </button>
+                  <mat-spinner *ngIf="isPortfolioUploading" diameter="24"></mat-spinner>
+                </div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button mat-raised-button color="primary" (click)="startEditing()">
+                <mat-icon>edit</mat-icon>
+                Edit Profile
+              </button>
+            </div>
           </div>
 
-          <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+          <!-- Edit/Create Form -->
+          <form *ngIf="!isLoading && (!profile || isEditing)" [formGroup]="profileForm" (ngSubmit)="onSubmit()">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Full Name</mat-label>
               <input matInput formControlName="fullName" required>
-              <mat-error *ngIf="profileForm.get('fullName')?.hasError('required')">
-                Full name is required
-              </mat-error>
+              <mat-error *ngIf="profileForm.get('fullName')?.hasError('required')">Full name is required</mat-error>
+              <mat-error *ngIf="profileForm.get('fullName')?.hasError('minlength')">Full name must be at least 2 characters</mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Company Name</mat-label>
               <input matInput formControlName="companyName" required>
-              <mat-error *ngIf="profileForm.get('companyName')?.hasError('required')">
-                Company name is required
-              </mat-error>
+              <mat-error *ngIf="profileForm.get('companyName')?.hasError('required')">Company name is required</mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Location</mat-label>
               <input matInput formControlName="location" required>
-              <mat-error *ngIf="profileForm.get('location')?.hasError('required')">
-                Location is required
-              </mat-error>
+              <mat-error *ngIf="profileForm.get('location')?.hasError('required')">Location is required</mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
@@ -99,9 +137,7 @@ import { environment } from '../../../../environments/environment';
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Services</mat-label>
               <mat-chip-grid #chipGrid aria-label="Enter services">
-                <mat-chip-row
-                  *ngFor="let service of services"
-                  (removed)="removeService(service)">
+                <mat-chip-row *ngFor="let service of services" (removed)="removeService(service)">
                   {{service}}
                   <button matChipRemove>
                     <mat-icon>cancel</mat-icon>
@@ -112,14 +148,12 @@ import { environment } from '../../../../environments/environment';
                        [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
                        (matChipInputTokenEnd)="addService($event)">
               </mat-chip-grid>
-              <mat-error *ngIf="profileForm.get('services')?.hasError('required')">
-                At least one service is required
-              </mat-error>
+              <mat-error *ngIf="profileForm.get('services')?.hasError('required')">At least one service is required</mat-error>
             </mat-form-field>
 
             <div class="actions">
-              <button mat-raised-button color="primary" type="submit" 
-                      [disabled]="profileForm.invalid || isLoading">
+              <button mat-button type="button" *ngIf="isEditing" (click)="cancelEditing()">Cancel</button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="profileForm.invalid || isLoading">
                 <mat-spinner diameter="20" *ngIf="isLoading"></mat-spinner>
                 <span *ngIf="!isLoading">{{isEditing ? 'Update Profile' : 'Create Profile'}}</span>
               </button>
@@ -135,6 +169,11 @@ import { environment } from '../../../../environments/environment';
       max-width: 800px;
       margin: 0 auto;
     }
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      padding: 2rem;
+    }
     .full-width {
       width: 100%;
       margin-bottom: 1rem;
@@ -142,55 +181,123 @@ import { environment } from '../../../../environments/environment';
     .actions {
       display: flex;
       justify-content: flex-end;
+      gap: 1rem;
       margin-top: 1rem;
     }
-    mat-spinner {
-      display: inline-block;
-      margin-right: 8px;
+    .profile-view {
+      padding: 1rem 0;
+    }
+    .profile-header {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
     }
     .photo-section {
       display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 1rem;
-      margin-bottom: 1.5rem;
     }
     .profile-photo {
-      width: 64px;
-      height: 64px;
+      width: 150px;
+      height: 150px;
       border-radius: 50%;
       object-fit: cover;
       border: 2px solid #ccc;
     }
-    .portfolio-section {
-      margin-bottom: 2rem;
-    }
-    .portfolio-header {
+    .profile-photo-placeholder {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background-color: #f0f0f0;
       display: flex;
       align-items: center;
-      gap: 1rem;
-      margin-bottom: 1rem;
+      justify-content: center;
     }
-    .portfolio-images {
+    .profile-photo-placeholder mat-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: #666;
+    }
+    .profile-info {
+      flex: 1;
+    }
+    .profile-info h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 24px;
+    }
+    .company-name {
+      font-size: 18px;
+      color: #666;
+      margin: 0 0 0.5rem 0;
+    }
+    .location {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #666;
+      margin: 0;
+    }
+    .profile-section {
+      margin-bottom: 2rem;
+    }
+    .profile-section h3 {
+      margin: 0 0 1rem 0;
+      color: #333;
+    }
+    .services-list {
       display: flex;
       flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .portfolio-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       gap: 1rem;
     }
     .portfolio-img-wrapper {
       position: relative;
-      display: inline-block;
+      aspect-ratio: 1;
     }
     .portfolio-img {
-      width: 100px;
-      height: 100px;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       border-radius: 8px;
       border: 1px solid #ccc;
     }
     .portfolio-img-wrapper button {
       position: absolute;
-      top: 2px;
-      right: 2px;
-      background: rgba(255,255,255,0.8);
+      top: 4px;
+      right: 4px;
+      background: rgba(255,255,255,0.9);
+    }
+    .add-portfolio {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+    }
+    mat-spinner {
+      display: inline-block;
+      margin-right: 8px;
+    }
+    .profile-photo-wrapper {
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .profile-photo-wrapper:hover {
+      transform: scale(1.05);
+    }
+    .portfolio-img {
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .portfolio-img:hover {
+      transform: scale(1.05);
     }
   `]
 })
@@ -205,12 +312,14 @@ export class ContractorProfileComponent implements OnInit {
   isPhotoUploading = false;
   portfolioImages: { id: number, url: string }[] = [];
   isPortfolioUploading = false;
+  profileCreated = false;
 
   constructor(
     private fb: FormBuilder,
     private contractorService: ContractorService,
     private snackBar: MatSnackBar,
-    private http: HttpClient
+    private http: HttpClient,
+    private dialog: MatDialog
   ) {
     this.profileForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(2)]],
@@ -223,8 +332,6 @@ export class ContractorProfileComponent implements OnInit {
 
   ngOnInit() {
     this.loadProfile();
-    this.loadProfilePhoto();
-    this.loadPortfolioImages();
   }
 
   loadProfile() {
@@ -232,18 +339,26 @@ export class ContractorProfileComponent implements OnInit {
     this.contractorService.getMyProfile().subscribe({
       next: (profile) => {
         this.profile = profile;
-        this.isEditing = true;
-        this.services = profile.services;
+        this.profileCreated = true;
+        if (typeof profile.services === 'string') {
+          this.services = (profile.services as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+        } else {
+          this.services = profile.services;
+        }
         this.profileForm.patchValue({
           fullName: profile.fullName,
           companyName: profile.companyName,
           location: profile.location,
           bio: profile.bio,
-          services: profile.services
+          services: this.services
         });
+        this.loadProfilePhoto();
+        this.loadPortfolioImages();
         this.isLoading = false;
       },
       error: (error) => {
+        this.profile = null;
+        this.profileCreated = false;
         console.error('Error loading profile:', error);
         this.snackBar.open('Error loading profile. Please try again.', 'Close', {
           duration: 5000
@@ -253,14 +368,39 @@ export class ContractorProfileComponent implements OnInit {
     });
   }
 
+  startEditing() {
+    this.isEditing = true;
+  }
+
+  cancelEditing() {
+    this.isEditing = false;
+    // Reset form to current profile values
+    if (this.profile) {
+      this.profileForm.patchValue({
+        fullName: this.profile.fullName,
+        companyName: this.profile.companyName,
+        location: this.profile.location,
+        bio: this.profile.bio,
+        services: this.services
+      });
+    }
+  }
+
   loadProfilePhoto() {
-    // Try to load the profile photo (type=0)
     this.http.get<any[]>(`${environment.apiUrl}/contractors/me/photos`).subscribe({
       next: (photos) => {
+        console.log('Profile photos response:', photos);
         const profilePhoto = photos.find(p => p.type === 0);
-        this.profilePhotoUrl = profilePhoto ? profilePhoto.url : null;
+        if (profilePhoto) {
+          // Use the correct endpoint structure with contractorId
+          this.profilePhotoUrl = `${environment.apiUrl}/contractors/${this.profile?.id}/photos/${profilePhoto.id}`;
+          console.log('Profile photo URL:', this.profilePhotoUrl);
+        } else {
+          this.profilePhotoUrl = null;
+        }
       },
-      error: () => {
+      error: (error) => {
+        console.error('Error loading profile photo:', error);
         this.profilePhotoUrl = null;
       }
     });
@@ -269,9 +409,17 @@ export class ContractorProfileComponent implements OnInit {
   loadPortfolioImages() {
     this.http.get<any[]>(`${environment.apiUrl}/contractors/me/photos`).subscribe({
       next: (photos) => {
-        this.portfolioImages = photos.filter(p => p.type === 1).map(p => ({ id: p.id, url: p.url }));
+        console.log('Portfolio photos response:', photos);
+        this.portfolioImages = photos
+          .filter(p => p.type === 1)
+          .map(p => ({
+            id: p.id,
+            url: `${environment.apiUrl}/contractors/${this.profile?.id}/photos/${p.id}`
+          }));
+        console.log('Portfolio images:', this.portfolioImages);
       },
-      error: () => {
+      error: (error) => {
+        console.error('Error loading portfolio images:', error);
         this.portfolioImages = [];
       }
     });
@@ -289,13 +437,18 @@ export class ContractorProfileComponent implements OnInit {
       const formData = new FormData();
       formData.append('file', file);
       this.isPhotoUploading = true;
-      this.http.post(`${environment.apiUrl}/contractors/me/photos?type=0`, formData).subscribe({
-        next: (res: any) => {
+
+      this.http.post<any>(`${environment.apiUrl}/contractors/me/photos?type=0`, formData).subscribe({
+        next: (res) => {
+          console.log('Photo upload response:', res);
           this.snackBar.open('Profile photo uploaded!', 'Close', { duration: 3000 });
-          this.profilePhotoUrl = res.url || URL.createObjectURL(file);
+          
+          // After successful upload, reload the profile photo
+          this.loadProfilePhoto();
           this.isPhotoUploading = false;
         },
-        error: () => {
+        error: (error) => {
+          console.error('Error uploading photo:', error);
           this.snackBar.open('Failed to upload photo.', 'Close', { duration: 3000 });
           this.isPhotoUploading = false;
         }
@@ -315,13 +468,16 @@ export class ContractorProfileComponent implements OnInit {
       const formData = new FormData();
       formData.append('file', file);
       this.isPortfolioUploading = true;
-      this.http.post(`${environment.apiUrl}/contractors/me/photos?type=1`, formData).subscribe({
-        next: (res: any) => {
+
+      this.http.post<any>(`${environment.apiUrl}/contractors/me/photos?type=1`, formData).subscribe({
+        next: (res) => {
+          console.log('Portfolio upload response:', res);
           this.snackBar.open('Portfolio image uploaded!', 'Close', { duration: 3000 });
-          this.loadPortfolioImages();
+          this.loadPortfolioImages(); // Reload all portfolio images
           this.isPortfolioUploading = false;
         },
-        error: () => {
+        error: (error) => {
+          console.error('Error uploading portfolio image:', error);
           this.snackBar.open('Failed to upload portfolio image.', 'Close', { duration: 3000 });
           this.isPortfolioUploading = false;
         }
@@ -361,33 +517,50 @@ export class ContractorProfileComponent implements OnInit {
   onSubmit() {
     if (this.profileForm.valid) {
       this.isLoading = true;
+      const formData = this.profileForm.value;
       const data = {
-        ...this.profileForm.value,
-        services: this.services
+        ...formData,
+        services: this.services.join(', ')  // Convert array to comma-separated string
       };
 
-      const request$ = this.isEditing
-        ? this.contractorService.updateProfile(data as UpdateContractorProfileDto)
-        : this.contractorService.createProfile(data as CreateContractorProfileDto);
+      let request$;
+      if (this.profileCreated) {
+        request$ = this.contractorService.updateProfile(data as UpdateContractorProfileDto);
+      } else {
+        request$ = this.contractorService.createProfile(data as CreateContractorProfileDto);
+      }
 
       request$.subscribe({
         next: () => {
           this.snackBar.open(
-            `Profile ${this.isEditing ? 'updated' : 'created'} successfully!`,
+            `Profile ${this.profileCreated ? 'updated' : 'created'} successfully!`,
             'Close',
             { duration: 5000 }
           );
           this.isLoading = false;
+          this.isEditing = false;
+          this.loadProfile(); // Reload profile data
         },
         error: (error) => {
-          console.error(`Error ${this.isEditing ? 'updating' : 'creating'} profile:`, error);
+          console.error(`Error ${this.profileCreated ? 'updating' : 'creating'} profile:`, error);
           this.snackBar.open(
-            `Error ${this.isEditing ? 'updating' : 'creating'} profile. Please try again.`,
+            `Error ${this.profileCreated ? 'updating' : 'creating'} profile. Please try again.`,
             'Close',
             { duration: 5000 }
           );
           this.isLoading = false;
         }
+      });
+    }
+  }
+
+  previewPhoto(photoUrl: string | null, photoType: 'profile' | 'portfolio'): void {
+    if (photoUrl) {
+      this.dialog.open(PhotoPreviewComponent, {
+        data: { photoUrl, photoType },
+        maxWidth: '90vw',
+        maxHeight: '90vh',
+        panelClass: 'photo-preview-dialog'
       });
     }
   }

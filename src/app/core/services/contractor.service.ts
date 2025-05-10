@@ -34,7 +34,7 @@ export class ContractorService {
   }
 
   updateProfile(data: UpdateContractorProfileDto): Observable<ContractorProfile> {
-    return this.http.put<ContractorProfile>(`${this.apiUrl}/me`, data);
+    return this.http.patch<ContractorProfile>(`${this.apiUrl}/me`, data);
   }
 
   deleteProfile(id: number): Observable<void> {

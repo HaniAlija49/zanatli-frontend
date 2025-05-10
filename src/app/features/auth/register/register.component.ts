@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatRadioModule } from '@angular/material/radio';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
@@ -20,7 +20,7 @@ import { RegisterDto } from '../../../core/models/auth.models';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatRadioModule,
+    MatCheckboxModule,
     MatCardModule
   ],
   template: `
@@ -31,6 +31,13 @@ import { RegisterDto } from '../../../core/models/auth.models';
         </mat-card-header>
         <mat-card-content>
           <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Full Name</mat-label>
+              <input matInput formControlName="fullName" required>
+              <mat-error *ngIf="registerForm.get('fullName')?.hasError('required')">Full name is required</mat-error>
+              <mat-error *ngIf="registerForm.get('fullName')?.hasError('minlength')">Full name must be at least 2 characters</mat-error>
+            </mat-form-field>
+
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Email</mat-label>
               <input matInput formControlName="email" type="email" required>
@@ -45,11 +52,9 @@ import { RegisterDto } from '../../../core/models/auth.models';
               <mat-error *ngIf="registerForm.get('password')?.hasError('minlength')">Password must be at least 6 characters</mat-error>
             </mat-form-field>
 
-            <div class="role-selection">
-              <mat-radio-group formControlName="userType" (change)="onUserTypeChange($event)">
-                <mat-radio-button value="client">I want to hire</mat-radio-button>
-                <mat-radio-button value="contractor">I want to work</mat-radio-button>
-              </mat-radio-group>
+            <div class="role-checkboxes">
+              <mat-checkbox formControlName="isClient">Client</mat-checkbox>
+              <mat-checkbox formControlName="isContractor">Contractor</mat-checkbox>
             </div>
 
             <button mat-raised-button color="primary" type="submit" [disabled]="registerForm.invalid">
@@ -82,13 +87,11 @@ import { RegisterDto } from '../../../core/models/auth.models';
       flex-direction: column;
       gap: 1rem;
     }
-    .role-selection {
-      margin: 1rem 0;
-    }
-    mat-radio-group {
+    .role-checkboxes {
       display: flex;
-      flex-direction: column;
-      gap: 1rem;
+      flex-direction: row;
+      gap: 2rem;
+      margin-bottom: 1rem;
     }
     button {
       width: 100%;
@@ -105,26 +108,19 @@ export class RegisterComponent {
     private snackBar: MatSnackBar
   ) {
     this.registerForm = this.fb.group({
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      userType: ['', Validators.required],
       isClient: [false],
       isContractor: [false]
     });
   }
 
-  onUserTypeChange(event: any) {
-    const userType = event.value;
-    this.registerForm.patchValue({
-      isClient: userType === 'client',
-      isContractor: userType === 'contractor'
-    });
-  }
-
   onSubmit() {
     if (this.registerForm.valid) {
-      const { email, password, isClient, isContractor } = this.registerForm.value;
+      const { fullName, email, password, isClient, isContractor } = this.registerForm.value;
       const registerData: RegisterDto = {
+        fullName,
         email,
         password,
         isClient,
@@ -137,7 +133,12 @@ export class RegisterComponent {
           this.router.navigate(['/auth/login']);
         },
         error: (error) => {
-          this.snackBar.open(error.error.message || 'Registration failed', 'Close', { duration: 3000 });
+          const errors = error?.error?.errors;
+          if (Array.isArray(errors) && errors.length > 0) {
+            this.snackBar.open(errors.join('\n'), 'Close', { duration: 5000 });
+          } else {
+            this.snackBar.open(error?.error?.message || 'Registration failed', 'Close', { duration: 3000 });
+          }
         }
       });
     }

@@ -16,7 +16,9 @@ export const roleGuard = (route: ActivatedRouteSnapshot) => {
         return false;
       }
 
-      const hasRequiredRole = requiredRoles.some(role => user.roles.includes(role));
+      const hasRequiredRole = requiredRoles.some(role =>
+        user.roles.some(userRole => userRole.toLowerCase() === role.toLowerCase())
+      );
       if (!hasRequiredRole) {
         router.navigate(['/']);
         return false;
