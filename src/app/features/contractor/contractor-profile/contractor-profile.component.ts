@@ -46,6 +46,26 @@ import { environment } from '../../../../environments/environment';
             </button>
             <mat-spinner *ngIf="isPhotoUploading" diameter="24"></mat-spinner>
           </div>
+
+          <div class="portfolio-section">
+            <div class="portfolio-header">
+              <span>Portfolio Images</span>
+              <input type="file" accept="image/*" (change)="onPortfolioSelected($event)" id="portfolioInput" hidden>
+              <button mat-stroked-button color="primary" (click)="triggerPortfolioInput()">
+                Add Image
+              </button>
+              <mat-spinner *ngIf="isPortfolioUploading" diameter="24"></mat-spinner>
+            </div>
+            <div class="portfolio-images">
+              <div *ngFor="let img of portfolioImages" class="portfolio-img-wrapper">
+                <img [src]="img.url" class="portfolio-img" alt="Portfolio Image">
+                <button mat-icon-button color="warn" (click)="deletePortfolioImage(img.id)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Full Name</mat-label>
@@ -141,6 +161,37 @@ import { environment } from '../../../../environments/environment';
       object-fit: cover;
       border: 2px solid #ccc;
     }
+    .portfolio-section {
+      margin-bottom: 2rem;
+    }
+    .portfolio-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .portfolio-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .portfolio-img-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    .portfolio-img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    .portfolio-img-wrapper button {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: rgba(255,255,255,0.8);
+    }
   `]
 })
 export class ContractorProfileComponent implements OnInit {
@@ -152,6 +203,8 @@ export class ContractorProfileComponent implements OnInit {
   readonly separatorKeysCodes = [ENTER, COMMA] as const;
   profilePhotoUrl: string | null = null;
   isPhotoUploading = false;
+  portfolioImages: { id: number, url: string }[] = [];
+  isPortfolioUploading = false;
 
   constructor(
     private fb: FormBuilder,
@@ -171,6 +224,7 @@ export class ContractorProfileComponent implements OnInit {
   ngOnInit() {
     this.loadProfile();
     this.loadProfilePhoto();
+    this.loadPortfolioImages();
   }
 
   loadProfile() {
@@ -212,6 +266,17 @@ export class ContractorProfileComponent implements OnInit {
     });
   }
 
+  loadPortfolioImages() {
+    this.http.get<any[]>(`${environment.apiUrl}/contractors/me/photos`).subscribe({
+      next: (photos) => {
+        this.portfolioImages = photos.filter(p => p.type === 1).map(p => ({ id: p.id, url: p.url }));
+      },
+      error: () => {
+        this.portfolioImages = [];
+      }
+    });
+  }
+
   triggerPhotoInput() {
     const input = document.getElementById('profilePhotoInput') as HTMLInputElement;
     if (input) input.click();
@@ -236,6 +301,44 @@ export class ContractorProfileComponent implements OnInit {
         }
       });
     }
+  }
+
+  triggerPortfolioInput() {
+    const input = document.getElementById('portfolioInput') as HTMLInputElement;
+    if (input) input.click();
+  }
+
+  onPortfolioSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      this.isPortfolioUploading = true;
+      this.http.post(`${environment.apiUrl}/contractors/me/photos?type=1`, formData).subscribe({
+        next: (res: any) => {
+          this.snackBar.open('Portfolio image uploaded!', 'Close', { duration: 3000 });
+          this.loadPortfolioImages();
+          this.isPortfolioUploading = false;
+        },
+        error: () => {
+          this.snackBar.open('Failed to upload portfolio image.', 'Close', { duration: 3000 });
+          this.isPortfolioUploading = false;
+        }
+      });
+    }
+  }
+
+  deletePortfolioImage(photoId: number) {
+    this.http.delete(`${environment.apiUrl}/contractors/me/photos/${photoId}`).subscribe({
+      next: () => {
+        this.snackBar.open('Portfolio image deleted!', 'Close', { duration: 3000 });
+        this.loadPortfolioImages();
+      },
+      error: () => {
+        this.snackBar.open('Failed to delete portfolio image.', 'Close', { duration: 3000 });
+      }
+    });
   }
 
   addService(event: MatChipInputEvent): void {
