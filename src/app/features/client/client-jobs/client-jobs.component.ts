@@ -4,8 +4,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { JobService } from '../../../core/services/job.service';
 import { Job } from '../../../core/models/job.models';
+import { JobCreateDialogComponent } from './job-create-dialog.component';
+import { JobDetailsDialogComponent } from './job-details-dialog.component';
 
 @Component({
   selector: 'app-client-jobs',
@@ -15,13 +18,17 @@ import { Job } from '../../../core/models/job.models';
     MatCardModule,
     MatButtonModule,
     MatTableModule,
-    MatIconModule
+    MatIconModule,
+    MatDialogModule,
+    JobCreateDialogComponent,
+    JobDetailsDialogComponent
   ],
   template: `
     <div class="jobs-container">
       <mat-card>
         <mat-card-header>
           <mat-card-title>My Jobs</mat-card-title>
+          <button mat-raised-button color="primary" (click)="openCreateJobDialog()">Create New Job</button>
         </mat-card-header>
         <mat-card-content>
           <table mat-table [dataSource]="jobs" class="mat-elevation-z8">
@@ -48,7 +55,7 @@ import { Job } from '../../../core/models/job.models';
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let job">
-                <button mat-icon-button color="primary" (click)="viewJob(job)">
+                <button mat-icon-button color="primary" (click)="openJobDetailsDialog(job)">
                   <mat-icon>visibility</mat-icon>
                 </button>
               </td>
@@ -70,13 +77,18 @@ import { Job } from '../../../core/models/job.models';
     table {
       width: 100%;
     }
+    mat-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
   `]
 })
 export class ClientJobsComponent implements OnInit {
   jobs: Job[] = [];
   displayedColumns: string[] = ['id', 'description', 'status', 'preferredDate', 'actions'];
 
-  constructor(private jobService: JobService) {}
+  constructor(private jobService: JobService, private dialog: MatDialog) {}
 
   ngOnInit() {
     this.loadJobs();
@@ -93,8 +105,26 @@ export class ClientJobsComponent implements OnInit {
     });
   }
 
-  viewJob(job: Job) {
-    // TODO: Implement job details view
-    console.log('View job:', job);
+  openCreateJobDialog() {
+    const dialogRef = this.dialog.open(JobCreateDialogComponent, {
+      width: '400px',
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'created') {
+        this.loadJobs();
+      }
+    });
+  }
+
+  openJobDetailsDialog(job: Job) {
+    const dialogRef = this.dialog.open(JobDetailsDialogComponent, {
+      width: '500px',
+      data: { job }
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'updated') {
+        this.loadJobs();
+      }
+    });
   }
 } 

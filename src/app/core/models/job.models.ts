@@ -37,8 +37,8 @@ export enum JobStatus {
 
 export interface CreateJobDto {
   description: string;
-  preferredDate: Date;
-  contractorId: string;
+  preferredDate: string;
+  contractorId: string | null;
 }
 
 export interface UpdateJobDto {

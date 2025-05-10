@@ -17,6 +17,8 @@ import { MatChipInputEvent } from '@angular/material/chips';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { PhotoPreviewComponent } from './photo-preview/photo-preview.component';
+import { JobCreateDialogComponent } from '../../client/client-jobs/job-create-dialog.component';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-contractor-profile',
@@ -31,7 +33,8 @@ import { PhotoPreviewComponent } from './photo-preview/photo-preview.component';
     MatChipsModule,
     MatIconModule,
     MatSnackBarModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    JobCreateDialogComponent
   ],
   template: `
     <div class="profile-container">
@@ -104,6 +107,10 @@ import { PhotoPreviewComponent } from './photo-preview/photo-preview.component';
               <button mat-raised-button color="primary" (click)="startEditing()">
                 <mat-icon>edit</mat-icon>
                 Edit Profile
+              </button>
+              <button *ngIf="authService.hasRole('client')" mat-raised-button color="accent" (click)="openJobCreateDialog()">
+                <mat-icon>work</mat-icon>
+                Request Job
               </button>
             </div>
           </div>
@@ -319,7 +326,8 @@ export class ContractorProfileComponent implements OnInit {
     private contractorService: ContractorService,
     private snackBar: MatSnackBar,
     private http: HttpClient,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    public authService: AuthService
   ) {
     this.profileForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(2)]],
@@ -561,6 +569,15 @@ export class ContractorProfileComponent implements OnInit {
         maxWidth: '90vw',
         maxHeight: '90vh',
         panelClass: 'photo-preview-dialog'
+      });
+    }
+  }
+
+  openJobCreateDialog() {
+    if (this.profile) {
+      this.dialog.open(JobCreateDialogComponent, {
+        width: '400px',
+        data: { contractorId: this.profile.userId }
       });
     }
   }

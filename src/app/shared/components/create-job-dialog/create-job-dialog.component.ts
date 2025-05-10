@@ -96,7 +96,7 @@ export class CreateJobDialogComponent {
       this.isLoading = true;
       const jobData = {
         ...this.jobForm.value,
-        contractorId: this.data.contractorId
+        contractorUserId: this.data.contractorId
       };
 
       this.jobService.createJob(jobData).subscribe({
