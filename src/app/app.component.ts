@@ -1,41 +1,26 @@
 import { Component } from '@angular/core';
-import { RouterOutlet, RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { NavComponent } from './core/components/nav/nav.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, ],
+  imports: [
+    CommonModule,
+    RouterModule,
+    NavComponent
+  ],
   template: `
-    <div class="app">
-      <nav>
-        <a routerLink="/">Home</a>
-        <a routerLink="/contractors">Contractors</a>
-      </nav>
-      <main>
-        <router-outlet></router-outlet>
-      </main>
-    </div>
+    <app-nav></app-nav>
+    <main>
+      <router-outlet></router-outlet>
+    </main>
   `,
   styles: [`
-    .app {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-    nav {
-      padding: 1rem;
-      background: #f5f5f5;
-    }
-    nav a {
-      margin-right: 1rem;
-      text-decoration: none;
-      color: #333;
-    }
     main {
-      flex: 1;
+      min-height: calc(100vh - 64px);
     }
   `]
 })
-export class AppComponent {
-  title = 'zanatli';
-}
+export class AppComponent {}

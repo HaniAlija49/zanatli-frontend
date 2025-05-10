@@ -1,66 +1,80 @@
-import { Injectable } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { ApiService } from './api.service';
-
-export interface User {
-  id: string;
-  email: string;
-  isClient: boolean;
-  isContractor: boolean;
-  activeRole: 'Client' | 'Contractor';
-}
-
-export interface AuthResponse {
-  token: string;
-  user: User;
-}
+import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
+import { User, LoginDto, RegisterDto } from '../models/auth.models';
+import { isPlatformBrowser } from '@angular/common';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private apiUrl = `${environment.apiUrl}/auth`;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
-  currentUser$ = this.currentUserSubject.asObservable();
+  public currentUser$ = this.currentUserSubject.asObservable();
+  private platformId = inject(PLATFORM_ID);
 
-  constructor(private api: ApiService) {
-    // Check for stored token on init
-    const token = localStorage.getItem('token');
-    if (token) {
-      this.getCurrentUser().subscribe();
+  constructor(
+    private http: HttpClient,
+    private router: Router
+  ) {
+    // Check for stored user on service initialization
+    if (isPlatformBrowser(this.platformId)) {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        this.currentUserSubject.next(JSON.parse(storedUser));
+      }
     }
   }
 
-  register(data: { email: string; password: string; isClient: boolean; isContractor: boolean }): Observable<AuthResponse> {
-    return this.api.post<AuthResponse>('/auth/register', data).pipe(
-      tap(response => this.handleAuthResponse(response))
+  login(loginData: LoginDto): Observable<User> {
+    const headers = new HttpHeaders().set('Content-Type', 'application/json');
+    return this.http.post<User>(`${this.apiUrl}/login`, loginData, { headers }).pipe(
+      tap(user => {
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.setItem('currentUser', JSON.stringify(user));
+        }
+        this.currentUserSubject.next(user);
+      })
     );
   }
 
-  login(email: string, password: string): Observable<AuthResponse> {
-    return this.api.post<AuthResponse>('/auth/login', { email, password }).pipe(
-      tap(response => this.handleAuthResponse(response))
+  register(registerData: RegisterDto): Observable<User> {
+    const headers = new HttpHeaders().set('Content-Type', 'application/json');
+    return this.http.post<User>(`${this.apiUrl}/register`, registerData, { headers }).pipe(
+      tap(user => {
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.setItem('currentUser', JSON.stringify(user));
+        }
+        this.currentUserSubject.next(user);
+      })
     );
   }
 
   logout(): void {
-    localStorage.removeItem('token');
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem('currentUser');
+    }
     this.currentUserSubject.next(null);
+    this.router.navigate(['/auth/login']);
   }
 
-  getCurrentUser(): Observable<User> {
-    return this.api.get<User>('/auth/me').pipe(
-      tap(user => this.currentUserSubject.next(user))
-    );
+  getCurrentUser(): User | null {
+    return this.currentUserSubject.value;
   }
 
-  updateActiveRole(role: 'Client' | 'Contractor'): Observable<User> {
-    return this.api.patch<User>('/users/me/active-role', { activeRole: role }).pipe(
-      tap(user => this.currentUserSubject.next(user))
-    );
+  isAuthenticated(): boolean {
+    return !!this.currentUserSubject.value;
   }
 
-  private handleAuthResponse(response: AuthResponse): void {
-    localStorage.setItem('token', response.token);
-    this.currentUserSubject.next(response.user);
+  hasRole(role: string): boolean {
+    const user = this.currentUserSubject.value;
+    return user?.activeRole === role;
+  }
+
+  getToken(): string | null {
+    const user = this.getCurrentUser();
+    return user ? user.token : null;
   }
 } 

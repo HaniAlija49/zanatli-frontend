@@ -1,21 +1,28 @@
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRouteSnapshot } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { map, take } from 'rxjs/operators';
 
-export const roleGuard = (allowedRoles: ('Client' | 'Contractor')[]) => {
-  const router = inject(Router);
+export const roleGuard = (route: ActivatedRouteSnapshot) => {
   const authService = inject(AuthService);
+  const router = inject(Router);
+  const requiredRoles = route.data['roles'] as string[];
 
   return authService.currentUser$.pipe(
     take(1),
     map(user => {
-      if (user && allowedRoles.includes(user.activeRole)) {
-        return true;
-      } else {
+      if (!user) {
+        router.navigate(['/auth/login']);
+        return false;
+      }
+
+      const hasRequiredRole = requiredRoles.some(role => user.roles.includes(role));
+      if (!hasRequiredRole) {
         router.navigate(['/']);
         return false;
       }
+
+      return true;
     })
   );
 }; 

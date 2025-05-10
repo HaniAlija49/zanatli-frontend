@@ -1,33 +1,76 @@
 import { Routes } from '@angular/router';
-import { LandingComponent } from './landing/landing.component';
-import { ContractorsSearchComponent } from './contractors/contractors-search/contractors-search.component';
-import { ContractorDetailComponent } from './contractors/contractor-detail/contractor-detail.component';
-import { LoginComponent } from './features/auth/login/login.component';
-import { RegisterComponent } from './features/auth/register/register.component';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
-  { path: '', component: LandingComponent },
-  { path: 'auth/login', component: LoginComponent },
-  { path: 'auth/register', component: RegisterComponent },
-  { 
-    path: 'contractors', 
-    component: ContractorsSearchComponent 
+  {
+    path: '',
+    loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent)
   },
-  { 
-    path: 'contractors/:id', 
-    component: ContractorDetailComponent 
+  {
+    path: 'auth',
+    children: [
+      {
+        path: 'login',
+        loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
+      },
+      {
+        path: 'register',
+        loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
+      }
+    ]
   },
-  { 
-    path: 'client', 
-    canActivate: [authGuard, () => roleGuard(['Client'])],
-    loadChildren: () => import('./features/client/client.routes').then(m => m.CLIENT_ROUTES)
+  {
+    path: 'client',
+    canActivate: [authGuard],
+    canActivateChild: [roleGuard],
+    data: { roles: ['Client'] },
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./features/client/client-dashboard/client-dashboard.component').then(m => m.ClientDashboardComponent)
+      },
+      {
+        path: 'jobs',
+        loadComponent: () => import('./features/client/client-jobs/client-jobs.component').then(m => m.ClientJobsComponent)
+      }
+    ]
   },
-  { 
-    path: 'contractor', 
-    canActivate: [authGuard, () => roleGuard(['Contractor'])],
-    loadChildren: () => import('./features/contractor/contractor.routes').then(m => m.CONTRACTOR_ROUTES)
+  {
+    path: 'contractor',
+    canActivate: [authGuard],
+    canActivateChild: [roleGuard],
+    data: { roles: ['Contractor'] },
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./features/contractor/contractor-dashboard/contractor-dashboard.component').then(m => m.ContractorDashboardComponent)
+      },
+      {
+        path: 'jobs',
+        loadComponent: () => import('./features/contractor/contractor-jobs/contractor-jobs.component').then(m => m.ContractorJobsComponent)
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/contractor/contractor-profile/contractor-profile.component').then(m => m.ContractorProfileComponent)
+      }
+    ]
   },
-  { path: '**', redirectTo: '' }
+  {
+    path: 'contractors',
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./features/contractors/contractors-search/contractors-search.component').then(m => m.ContractorsSearchComponent)
+      },
+      {
+        path: ':id',
+        loadComponent: () => import('./features/contractors/contractor-detail/contractor-detail.component').then(m => m.ContractorDetailComponent)
+      }
+    ]
+  },
+  {
+    path: '**',
+    redirectTo: ''
+  }
 ];

@@ -1,7 +1,7 @@
 export interface CreateContractorProfileDto {
   fullName: string;
   bio: string;
-  services: string;
+  services: string[];
   location: string;
   companyName: string;
 }
@@ -9,7 +9,7 @@ export interface CreateContractorProfileDto {
 export interface UpdateContractorProfileDto {
   fullName: string;
   bio: string;
-  services: string;
+  services: string[];
   location: string;
   companyName: string;
 }

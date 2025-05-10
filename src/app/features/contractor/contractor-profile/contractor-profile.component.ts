@@ -7,8 +7,12 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ContractorService } from '../../../core/services/contractor.service';
 import { ContractorProfile, CreateContractorProfileDto, UpdateContractorProfileDto } from '../../../core/models/contractor.models';
+import { COMMA, ENTER } from '@angular/cdk/keycodes';
+import { MatChipInputEvent } from '@angular/material/chips';
 
 @Component({
   selector: 'app-contractor-profile',
@@ -21,7 +25,9 @@ import { ContractorProfile, CreateContractorProfileDto, UpdateContractorProfileD
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
-    MatIconModule
+    MatIconModule,
+    MatSnackBarModule,
+    MatProgressSpinnerModule
   ],
   template: `
     <div class="profile-container">
@@ -61,16 +67,31 @@ import { ContractorProfile, CreateContractorProfileDto, UpdateContractorProfileD
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Services (comma-separated)</mat-label>
-              <input matInput formControlName="services" required>
+              <mat-label>Services</mat-label>
+              <mat-chip-grid #chipGrid aria-label="Enter services">
+                <mat-chip-row
+                  *ngFor="let service of services"
+                  (removed)="removeService(service)">
+                  {{service}}
+                  <button matChipRemove>
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </mat-chip-row>
+                <input placeholder="New service..."
+                       [matChipInputFor]="chipGrid"
+                       [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+                       (matChipInputTokenEnd)="addService($event)">
+              </mat-chip-grid>
               <mat-error *ngIf="profileForm.get('services')?.hasError('required')">
                 At least one service is required
               </mat-error>
             </mat-form-field>
 
             <div class="actions">
-              <button mat-raised-button color="primary" type="submit" [disabled]="profileForm.invalid">
-                {{isEditing ? 'Update Profile' : 'Create Profile'}}
+              <button mat-raised-button color="primary" type="submit" 
+                      [disabled]="profileForm.invalid || isLoading">
+                <mat-spinner diameter="20" *ngIf="isLoading"></mat-spinner>
+                <span *ngIf="!isLoading">{{isEditing ? 'Update Profile' : 'Create Profile'}}</span>
               </button>
             </div>
           </form>
@@ -93,23 +114,31 @@ import { ContractorProfile, CreateContractorProfileDto, UpdateContractorProfileD
       justify-content: flex-end;
       margin-top: 1rem;
     }
+    mat-spinner {
+      display: inline-block;
+      margin-right: 8px;
+    }
   `]
 })
 export class ContractorProfileComponent implements OnInit {
   profileForm: FormGroup;
   isEditing = false;
+  isLoading = false;
   profile: ContractorProfile | null = null;
+  services: string[] = [];
+  readonly separatorKeysCodes = [ENTER, COMMA] as const;
 
   constructor(
     private fb: FormBuilder,
-    private contractorService: ContractorService
+    private contractorService: ContractorService,
+    private snackBar: MatSnackBar
   ) {
     this.profileForm = this.fb.group({
-      fullName: ['', Validators.required],
-      companyName: ['', Validators.required],
-      location: ['', Validators.required],
-      bio: [''],
-      services: ['', Validators.required]
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
+      companyName: ['', [Validators.required, Validators.minLength(2)]],
+      location: ['', [Validators.required, Validators.minLength(2)]],
+      bio: ['', Validators.maxLength(500)],
+      services: [[], [Validators.required, Validators.minLength(1)]]
     });
   }
 
@@ -118,51 +147,79 @@ export class ContractorProfileComponent implements OnInit {
   }
 
   loadProfile() {
+    this.isLoading = true;
     this.contractorService.getMyProfile().subscribe({
       next: (profile) => {
         this.profile = profile;
         this.isEditing = true;
+        this.services = profile.services;
         this.profileForm.patchValue({
           fullName: profile.fullName,
           companyName: profile.companyName,
           location: profile.location,
           bio: profile.bio,
-          services: Array.isArray(profile.services) ? profile.services.join(', ') : ''
+          services: profile.services
         });
+        this.isLoading = false;
       },
       error: (error) => {
         console.error('Error loading profile:', error);
+        this.snackBar.open('Error loading profile. Please try again.', 'Close', {
+          duration: 5000
+        });
+        this.isLoading = false;
       }
     });
   }
 
+  addService(event: MatChipInputEvent): void {
+    const value = (event.value || '').trim();
+    if (value) {
+      this.services.push(value);
+      this.profileForm.patchValue({ services: this.services });
+    }
+    event.chipInput!.clear();
+  }
+
+  removeService(service: string): void {
+    const index = this.services.indexOf(service);
+    if (index >= 0) {
+      this.services.splice(index, 1);
+      this.profileForm.patchValue({ services: this.services });
+    }
+  }
+
   onSubmit() {
     if (this.profileForm.valid) {
-      const formValue = this.profileForm.value;
+      this.isLoading = true;
       const data = {
-        ...formValue,
-        services: formValue.services.split(',').map((s: string) => s.trim())
+        ...this.profileForm.value,
+        services: this.services
       };
 
-      if (this.isEditing) {
-        this.contractorService.updateProfile(data as UpdateContractorProfileDto).subscribe({
-          next: () => {
-            // TODO: Show success message
-          },
-          error: (error) => {
-            console.error('Error updating profile:', error);
-          }
-        });
-      } else {
-        this.contractorService.createProfile(data as CreateContractorProfileDto).subscribe({
-          next: () => {
-            // TODO: Show success message
-          },
-          error: (error) => {
-            console.error('Error creating profile:', error);
-          }
-        });
-      }
+      const request$ = this.isEditing
+        ? this.contractorService.updateProfile(data as UpdateContractorProfileDto)
+        : this.contractorService.createProfile(data as CreateContractorProfileDto);
+
+      request$.subscribe({
+        next: () => {
+          this.snackBar.open(
+            `Profile ${this.isEditing ? 'updated' : 'created'} successfully!`,
+            'Close',
+            { duration: 5000 }
+          );
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error(`Error ${this.isEditing ? 'updating' : 'creating'} profile:`, error);
+          this.snackBar.open(
+            `Error ${this.isEditing ? 'updating' : 'creating'} profile. Please try again.`,
+            'Close',
+            { duration: 5000 }
+          );
+          this.isLoading = false;
+        }
+      });
     }
   }
 } 

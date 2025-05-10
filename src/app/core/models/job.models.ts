@@ -9,19 +9,40 @@ export interface UpdateJobResponseDto {
 }
 
 export interface Job {
-  id: number;
-  contractorId: string;
-  clientId: string;
+  id: string;
   description: string;
-  preferredDate: Date;
   status: JobStatus;
+  preferredDate: Date;
   createdAt: Date;
   updatedAt: Date;
+  clientId: string;
+  contractorId: string;
+  client?: {
+    id: string;
+    fullName: string;
+  };
+  contractor?: {
+    id: string;
+    fullName: string;
+  };
 }
 
 export enum JobStatus {
   Pending = 'Pending',
   Accepted = 'Accepted',
   Declined = 'Declined',
-  Completed = 'Completed'
+  Completed = 'Completed',
+  Cancelled = 'Cancelled'
+}
+
+export interface CreateJobDto {
+  description: string;
+  preferredDate: Date;
+  contractorId: string;
+}
+
+export interface UpdateJobDto {
+  description?: string;
+  preferredDate?: Date;
+  status?: JobStatus;
 } 
