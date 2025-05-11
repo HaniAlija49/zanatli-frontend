@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,8 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/auth.models';
+import { RoleToggleComponent } from '../../../shared/components/role-toggle/role-toggle.component';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-nav',
@@ -21,7 +23,8 @@ import { User } from '../../models/auth.models';
     MatIconModule,
     MatMenuModule,
     MatSidenavModule,
-    MatListModule
+    MatListModule,
+    RoleToggleComponent
   ],
   template: `
     <mat-toolbar color="primary">
@@ -44,17 +47,29 @@ import { User } from '../../models/auth.models';
         </ng-container>
 
         <ng-container *ngIf="isLoggedIn">
-          <ng-container *ngIf="isClient">
+          <ng-container *ngIf="activeRole === 'client'">
             <a mat-button routerLink="/client/dashboard">Dashboard</a>
             <a mat-button routerLink="/client/jobs">My Jobs</a>
           </ng-container>
 
-          <ng-container *ngIf="isContractor">
+          <ng-container *ngIf="activeRole === 'contractor'">
             <a mat-button routerLink="/contractor">Dashboard</a>
             <a mat-button routerLink="/contractor/jobs">My Jobs</a>
-            <a mat-button routerLink="/contractor/profile">Profile</a>
             <a mat-button [routerLink]="'/contractor/profile'" fragment="portfolio">Portfolio</a>
+            <a mat-button routerLink="/contractor/profile">Profile</a>
           </ng-container>
+
+          <app-role-toggle
+            [roles]="roles"
+            [activeRole]="activeRole"
+            (roleChange)="onRoleChange($event)"
+            *ngIf="(roles || []).length > 1"
+          ></app-role-toggle>
+
+          <button mat-stroked-button color="primary" *ngIf="isLoggedIn && roles.includes('client') && !roles.includes('contractor')" (click)="becomeContractor()">
+            <mat-icon>engineering</mat-icon>
+            Be a Contractor
+          </button>
 
           <button mat-icon-button [matMenuTriggerFor]="userMenu">
             <mat-icon>account_circle</mat-icon>
@@ -83,7 +98,7 @@ import { User } from '../../models/auth.models';
           </ng-container>
 
           <ng-container *ngIf="isLoggedIn">
-            <ng-container *ngIf="isClient">
+            <ng-container *ngIf="activeRole === 'client'">
               <a mat-list-item routerLink="/client/dashboard" (click)="sidenav.close()">
                 <mat-icon>dashboard</mat-icon>
                 <span>Dashboard</span>
@@ -94,7 +109,7 @@ import { User } from '../../models/auth.models';
               </a>
             </ng-container>
 
-            <ng-container *ngIf="isContractor">
+            <ng-container *ngIf="activeRole === 'contractor'">
               <a mat-list-item routerLink="/contractor" (click)="sidenav.close()">
                 <mat-icon>dashboard</mat-icon>
                 <span>Dashboard</span>
@@ -103,13 +118,13 @@ import { User } from '../../models/auth.models';
                 <mat-icon>work</mat-icon>
                 <span>My Jobs</span>
               </a>
-              <a mat-list-item routerLink="/contractor/profile" (click)="sidenav.close()">
-                <mat-icon>person</mat-icon>
-                <span>Profile</span>
-              </a>
               <a mat-list-item [routerLink]="'/contractor/profile'" fragment="portfolio" (click)="sidenav.close()">
                 <mat-icon>collections</mat-icon>
                 <span>Portfolio</span>
+              </a>
+              <a mat-list-item routerLink="/contractor/profile" (click)="sidenav.close()">
+                <mat-icon>person</mat-icon>
+                <span>Profile</span>
               </a>
             </ng-container>
 
@@ -200,22 +215,48 @@ import { User } from '../../models/auth.models';
 })
 export class NavComponent implements OnInit {
   isLoggedIn = false;
-  isClient = false;
-  isContractor = false;
   currentUser: User | null = null;
+  roles: string[] = [];
+  activeRole: string = '';
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private router: Router, private snackBar: MatSnackBar) {}
 
   ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       this.isLoggedIn = !!user;
-      this.isClient = user?.roles.some(r => r.toLowerCase() === 'client') ?? false;
-      this.isContractor = user?.roles.some(r => r.toLowerCase() === 'contractor') ?? false;
+      this.roles = Array.isArray(user?.roles) ? user.roles : [];
+      this.activeRole = user?.activeRole ?? '';
     });
+    this.authService.activeRole$.subscribe(role => {
+      this.activeRole = role;
+    });
+    this.authService.roles$.subscribe(roles => {
+      this.roles = Array.isArray(roles) ? roles : [];
+    });
+  }
+
+  onRoleChange(role: string) {
+    this.authService.setActiveRole(role);
+    if (role === 'client') {
+      this.router.navigate(['/client/dashboard']);
+    } else if (role === 'contractor') {
+      this.router.navigate(['/contractor/dashboard']);
+    }
   }
 
   logout() {
     this.authService.logout();
+  }
+
+  becomeContractor() {
+    this.authService.assignContractorRole().subscribe({
+      next: () => {
+        this.snackBar.open('You are now a contractor! Toggle your role to access contractor features.', 'Close', { duration: 5000 });
+      },
+      error: () => {
+        this.snackBar.open('Failed to assign contractor role. Please try again.', 'Close', { duration: 5000 });
+      }
+    });
   }
 } 

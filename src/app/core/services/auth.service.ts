@@ -23,6 +23,10 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
   private platformId: Object;
+  private rolesSubject = new BehaviorSubject<string[]>([]);
+  roles$ = this.rolesSubject.asObservable();
+  private activeRoleSubject = new BehaviorSubject<string>('');
+  activeRole$ = this.activeRoleSubject.asObservable();
 
   constructor(
     private http: HttpClient,
@@ -34,8 +38,15 @@ export class AuthService {
     if (isPlatformBrowser(this.platformId)) {
       const storedUser = localStorage.getItem('currentUser');
       if (storedUser) {
-        this.currentUserSubject.next(JSON.parse(storedUser));
+        const user = JSON.parse(storedUser);
+        this.currentUserSubject.next(user);
+        this.setRoles(user.roles); // Ensure roles are set on init
       }
+      // Optionally, load roles and activeRole from localStorage/sessionStorage
+      const storedRoles = localStorage.getItem('roles');
+      const storedActiveRole = localStorage.getItem('activeRole');
+      if (storedRoles) this.rolesSubject.next(JSON.parse(storedRoles));
+      if (storedActiveRole) this.activeRoleSubject.next(storedActiveRole);
     }
   }
 
@@ -61,10 +72,11 @@ export class AuthService {
         return user;
       }),
       tap(user => {
-        if (typeof window !== 'undefined' && window.localStorage) {
+        if (isPlatformBrowser(this.platformId)) {
           localStorage.setItem('currentUser', JSON.stringify(user));
         }
         this.currentUserSubject.next(user);
+        this.setRoles(user.roles); // Ensure roles are set after login
       })
     );
   }
@@ -91,17 +103,18 @@ export class AuthService {
         return user;
       }),
       tap(user => {
-        if (typeof window !== 'undefined' && window.localStorage) {
+        if (isPlatformBrowser(this.platformId)) {
           localStorage.setItem('currentUser', JSON.stringify(user));
         }
         this.currentUserSubject.next(user);
+        this.setRoles(user.roles); // Ensure roles are set after register
       })
     );
   }
 
   logout(): void {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
+      if (isPlatformBrowser(this.platformId)) {
         localStorage.removeItem('currentUser');
         // Optionally clear all localStorage if you want:
         // localStorage.clear();
@@ -129,5 +142,46 @@ export class AuthService {
   getToken(): string | null {
     const user = this.getCurrentUser();
     return user ? user.token : null;
+  }
+
+  setRoles(roles: string[]) {
+    this.rolesSubject.next(roles);
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('roles', JSON.stringify(roles));
+    }
+  }
+
+  setActiveRole(role: string) {
+    // Capitalize first letter for backend
+    const formattedRole = role.charAt(0).toUpperCase() + role.slice(1);
+    this.http.patch(`${environment.apiUrl}/users/me/active-role`, { activeRole: formattedRole }).subscribe({
+      next: () => {
+        this.activeRoleSubject.next(role);
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.setItem('activeRole', role);
+        }
+      }
+    });
+  }
+
+  assignContractorRole() {
+    return this.http.patch<any>(`${environment.apiUrl}/auth/assign-role`, { isClient: true, isContractor: true }).pipe(
+      tap(res => {
+        // Update user and roles with new token and roles from response
+        const user = this.getCurrentUser();
+        if (user && res.token && res.user) {
+          user.token = res.token;
+          // Update roles based on response
+          user.roles = [];
+          if (res.user.isClient) user.roles.push('client');
+          if (res.user.isContractor) user.roles.push('contractor');
+          this.currentUserSubject.next(user);
+          this.setRoles(user.roles);
+          if (isPlatformBrowser(this.platformId)) {
+            localStorage.setItem('currentUser', JSON.stringify(user));
+          }
+        }
+      })
+    );
   }
 } 
