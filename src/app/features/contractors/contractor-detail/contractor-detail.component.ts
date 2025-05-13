@@ -16,6 +16,7 @@ import { ContractorProfile } from '../../../core/models/contractor.models';
 import { CreateJobDialogComponent } from '../../../shared/components/create-job-dialog/create-job-dialog.component';
 import { forkJoin } from 'rxjs';
 import { ContractorReviewsComponent } from '../../../contractors/contractor-reviews/contractor-reviews.component';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-contractor-detail',
@@ -120,7 +121,12 @@ import { ContractorReviewsComponent } from '../../../contractors/contractor-revi
           </div>
 
           <div class="actions">
-            <button mat-raised-button color="primary" (click)="openCreateJobDialog()" class="create-job-btn">
+            <!-- Show Create Job Request button only when active role is client -->
+            <button *ngIf="isClient" 
+                    mat-raised-button 
+                    color="primary" 
+                    (click)="openCreateJobDialog()" 
+                    class="create-job-btn">
               <mat-icon>add</mat-icon>
               Create Job Request
             </button>
@@ -395,14 +401,21 @@ export class ContractorDetailComponent implements OnInit {
   profilePhoto: Photo | null = null;
   portfolioPhotos: Photo[] = [];
   isLoading = true;
+  isClient = false;
 
   constructor(
     private route: ActivatedRoute,
     private contractorService: ContractorService,
     private photoService: PhotoService,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {}
+    private dialog: MatDialog,
+    public authService: AuthService
+  ) {
+    // Subscribe to activeRole changes
+    this.authService.activeRole$.subscribe(role => {
+      this.isClient = role === 'client';
+    });
+  }
 
   ngOnInit() {
     const contractorId = this.route.snapshot.paramMap.get('id');
@@ -438,6 +451,14 @@ export class ContractorDetailComponent implements OnInit {
 
   openCreateJobDialog() {
     if (!this.contractor) return;
+    
+    // Check if active role is client
+    if (!this.isClient) {
+      this.snackBar.open('Please switch to client role to create job requests.', 'Close', {
+        duration: 5000
+      });
+      return;
+    }
 
     const dialogRef = this.dialog.open(CreateJobDialogComponent, {
       width: '500px',
