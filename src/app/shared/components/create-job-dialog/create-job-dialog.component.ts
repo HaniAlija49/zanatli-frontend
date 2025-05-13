@@ -6,13 +6,25 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { MatNativeDateModule, DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE, NativeDateAdapter } from '@angular/material/core';
 import { JobService } from '../../../core/services/job.service';
 
 interface DialogData {
   contractorId: string;
   contractorName: string;
 }
+
+export const MY_DATE_FORMATS = {
+  parse: {
+    dateInput: 'LL',
+  },
+  display: {
+    dateInput: 'YYYY-MM-DD',
+    monthYearLabel: 'MMM YYYY',
+    dateA11yLabel: 'LL',
+    monthYearA11yLabel: 'MMMM YYYY',
+  },
+};
 
 @Component({
   selector: 'app-create-job-dialog',
@@ -26,6 +38,11 @@ interface DialogData {
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule
+  ],
+  providers: [
+    { provide: DateAdapter, useClass: NativeDateAdapter },
+    { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
+    { provide: MAT_DATE_LOCALE, useValue: 'en-US' }
   ],
   template: `
     <h2 mat-dialog-title>Create Job Request</h2>
@@ -83,7 +100,7 @@ export class CreateJobDialogComponent {
   ) {
     this.jobForm = this.fb.group({
       description: ['', [Validators.required, Validators.minLength(10)]],
-      preferredDate: ['', Validators.required]
+      preferredDate: [new Date(), Validators.required]
     });
   }
 

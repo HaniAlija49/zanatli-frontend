@@ -4,10 +4,24 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule, DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE, NativeDateAdapter } from '@angular/material/core';
 import { CommonModule } from '@angular/common';
 import { JobService } from '../../../core/services/job.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+
+export const MY_DATE_FORMATS = {
+  parse: {
+    dateInput: 'LL',
+  },
+  display: {
+    dateInput: 'YYYY-MM-DD',
+    monthYearLabel: 'MMM YYYY',
+    dateA11yLabel: 'LL',
+    monthYearA11yLabel: 'MMMM YYYY',
+  },
+};
 
 @Component({
   selector: 'app-job-create-dialog',
@@ -17,7 +31,14 @@ import { MatSnackBar } from '@angular/material/snack-bar';
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
-    MatButtonModule
+    MatButtonModule,
+    MatDatepickerModule,
+    MatNativeDateModule
+  ],
+  providers: [
+    { provide: DateAdapter, useClass: NativeDateAdapter },
+    { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS },
+    { provide: MAT_DATE_LOCALE, useValue: 'en-US' }
   ],
   template: `
     <h2 mat-dialog-title>Create New Job</h2>
@@ -29,7 +50,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
       </mat-form-field>
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Preferred Date</mat-label>
-        <input matInput type="date" formControlName="preferredDate" required>
+        <input matInput [matDatepicker]="picker" formControlName="preferredDate" required>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
         <mat-error *ngIf="form.get('preferredDate')?.hasError('required')">Preferred date is required</mat-error>
       </mat-form-field>
       <mat-form-field appearance="outline" class="full-width">
@@ -62,7 +85,7 @@ export class JobCreateDialogComponent implements OnInit {
     this.isContractorPreFilled = !!(data && data.contractorId);
     this.form = this.fb.group({
       description: ['', Validators.required],
-      preferredDate: ['', Validators.required],
+      preferredDate: [new Date(), Validators.required],
       contractorId: [{ value: data?.contractorId || '', disabled: !!data?.contractorId }]
     });
   }
@@ -74,24 +97,14 @@ export class JobCreateDialogComponent implements OnInit {
       this.dialogRef.close();
       return;
     }
-
-    this.form = this.fb.group({
-      title: ['', [Validators.required, Validators.minLength(3)]],
-      description: ['', [Validators.required, Validators.minLength(10)]],
-      budget: ['', [Validators.required, Validators.min(1)]],
-      deadline: ['', Validators.required]
-    });
   }
 
   onSubmit() {
     if (this.form.valid) {
       const value = this.form.getRawValue();
-      const preferredDate = value.preferredDate
-        ? new Date(value.preferredDate).toISOString()
-        : '';
       this.jobService.createJob({
         description: value.description,
-        preferredDate,
+        preferredDate: value.preferredDate,
         contractorId: value.contractorId ? String(value.contractorId) : null
       }).subscribe({
         next: () => this.dialogRef.close('created'),

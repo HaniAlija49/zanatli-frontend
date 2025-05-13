@@ -11,6 +11,7 @@ import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/auth.models';
 import { RoleToggleComponent } from '../../../shared/components/role-toggle/role-toggle.component';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { UserMenuComponent } from '../user-menu/user-menu.component';
 
 @Component({
   selector: 'app-nav',
@@ -24,61 +25,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
     MatMenuModule,
     MatSidenavModule,
     MatListModule,
-    RoleToggleComponent
+    RoleToggleComponent,
+    UserMenuComponent
   ],
   template: `
-    <mat-toolbar color="primary">
-      <button mat-icon-button (click)="sidenav.toggle()" class="menu-button">
-        <mat-icon>menu</mat-icon>
-      </button>
-
-      <a routerLink="/" class="logo">
-        Zanatli
-      </a>
-
-      <span class="spacer"></span>
-
-      <!-- Desktop Navigation -->
-      <div class="desktop-nav">
-        <a mat-button routerLink="/contractors">Browse Contractors</a>
-        <ng-container *ngIf="!isLoggedIn">
-          <a mat-button routerLink="/auth/login" class="black-text">Login</a>
-          <a mat-raised-button color="accent" routerLink="/auth/register" class="black-text">Sign Up</a>
-        </ng-container>
-
-        <ng-container *ngIf="isLoggedIn">
-          <ng-container *ngIf="activeRole === 'client'">
-            <a mat-button routerLink="/client/dashboard">Dashboard</a>
-            <a mat-button routerLink="/client/jobs">My Jobs</a>
-          </ng-container>
-
-          <ng-container *ngIf="activeRole === 'contractor'">
-            <a mat-button routerLink="/contractor">Dashboard</a>
-            <a mat-button routerLink="/contractor/jobs">My Jobs</a>
-            <a mat-button [routerLink]="'/contractor/profile'" fragment="portfolio">Portfolio</a>
-            <a mat-button routerLink="/contractor/profile">Profile</a>
-          </ng-container>
-
-          <app-role-toggle
-            [roles]="roles"
-            [activeRole]="activeRole"
-            (roleChange)="onRoleChange($event)"
-            *ngIf="(roles || []).length > 1"
-          ></app-role-toggle>
-
-          <button mat-stroked-button color="primary" *ngIf="isLoggedIn && roles.includes('client') && !roles.includes('contractor')" (click)="becomeContractor()">
-            <mat-icon>engineering</mat-icon>
-            Be a Contractor
-          </button>
-
-          <button mat-icon-button [matMenuTriggerFor]="userMenu">
-            <mat-icon>account_circle</mat-icon>
-          </button>
-        </ng-container>
-      </div>
-    </mat-toolbar>
-
-    <!-- Mobile Navigation -->
     <mat-sidenav-container>
       <mat-sidenav #sidenav mode="over">
         <mat-nav-list>
@@ -122,11 +72,20 @@ import { MatSnackBar } from '@angular/material/snack-bar';
                 <mat-icon>collections</mat-icon>
                 <span>Portfolio</span>
               </a>
-              <a mat-list-item routerLink="/contractor/profile" (click)="sidenav.close()">
-                <mat-icon>person</mat-icon>
-                <span>Profile</span>
-              </a>
             </ng-container>
+
+            <div class="mobile-role-toggle" *ngIf="(roles || []).length > 1">
+              <app-role-toggle
+                [roles]="roles"
+                [activeRole]="activeRole"
+                (roleChange)="onRoleChange($event)"
+              ></app-role-toggle>
+            </div>
+
+            <button mat-list-item *ngIf="isLoggedIn && roles.includes('client') && !roles.includes('contractor')" (click)="becomeContractor(); sidenav.close()">
+              <mat-icon>engineering</mat-icon>
+              <span>Be a Contractor</span>
+            </button>
 
             <a mat-list-item (click)="logout(); sidenav.close()">
               <mat-icon>logout</mat-icon>
@@ -135,15 +94,58 @@ import { MatSnackBar } from '@angular/material/snack-bar';
           </ng-container>
         </mat-nav-list>
       </mat-sidenav>
-    </mat-sidenav-container>
 
-    <!-- User Menu -->
-    <mat-menu #userMenu="matMenu">
-      <button mat-menu-item (click)="logout()">
-        <mat-icon>logout</mat-icon>
-        <span>Logout</span>
-      </button>
-    </mat-menu>
+      <mat-sidenav-content>
+        <mat-toolbar color="primary">
+          <button mat-icon-button (click)="sidenav.toggle()" class="menu-button">
+            <mat-icon>menu</mat-icon>
+          </button>
+
+          <a routerLink="/" class="logo">
+            Zanatli
+          </a>
+
+          <span class="spacer"></span>
+
+          <!-- Desktop Navigation -->
+          <div class="desktop-nav">
+            <a mat-button routerLink="/contractors">Browse Contractors</a>
+            <ng-container *ngIf="!isLoggedIn">
+              <a mat-button routerLink="/auth/login" class="black-text">Login</a>
+              <a mat-raised-button color="accent" routerLink="/auth/register" class="black-text">Sign Up</a>
+            </ng-container>
+
+            <ng-container *ngIf="isLoggedIn">
+              <ng-container *ngIf="activeRole === 'client'">
+                <a mat-button routerLink="/client/dashboard">Dashboard</a>
+                <a mat-button routerLink="/client/jobs">My Jobs</a>
+              </ng-container>
+
+              <ng-container *ngIf="activeRole === 'contractor'">
+                <a mat-button routerLink="/contractor">Dashboard</a>
+                <a mat-button routerLink="/contractor/jobs">My Jobs</a>
+                <a mat-button [routerLink]="'/contractor/profile'" fragment="portfolio">Portfolio</a>
+              </ng-container>
+
+              <app-role-toggle
+                [roles]="roles"
+                [activeRole]="activeRole"
+                (roleChange)="onRoleChange($event)"
+                *ngIf="(roles || []).length > 1"
+              ></app-role-toggle>
+
+              <button mat-stroked-button color="primary" *ngIf="isLoggedIn && roles.includes('client') && !roles.includes('contractor')" (click)="becomeContractor()">
+                <mat-icon>engineering</mat-icon>
+                Be a Contractor
+              </button>
+
+              <app-user-menu></app-user-menu>
+            </ng-container>
+          </div>
+        </mat-toolbar>
+        <router-outlet></router-outlet>
+      </mat-sidenav-content>
+    </mat-sidenav-container>
   `,
   styles: [`
     .spacer {
@@ -188,18 +190,52 @@ import { MatSnackBar } from '@angular/material/snack-bar';
     }
 
     mat-sidenav {
-      width: 250px;
+      width: 280px;
+    }
+
+    mat-sidenav-container {
+      height: 100vh;
     }
 
     mat-nav-list {
       padding-top: 1rem;
     }
 
-    mat-nav-list a {
+    mat-nav-list a, mat-nav-list button {
       display: flex;
       align-items: center;
       gap: 1rem;
       color: #222;
+      height: 48px;
+      padding: 0 16px;
+    }
+
+    mat-nav-list mat-icon {
+      margin-right: 8px;
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+    }
+
+    .mobile-role-toggle {
+      padding: 16px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      background-color: #f5f5f5;
+    }
+
+    .mobile-role-toggle app-role-toggle {
+      display: flex;
+      justify-content: center;
+      padding: 8px 0;
+    }
+
+    .mobile-role-toggle::before {
+      content: 'Switch Role';
+      display: block;
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.6);
+      margin-bottom: 8px;
+      font-weight: 500;
     }
 
     @media (max-width: 768px) {
@@ -209,6 +245,14 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
       .desktop-nav {
         display: none;
+      }
+
+      mat-nav-list a, mat-nav-list button {
+        padding: 0 24px;
+      }
+
+      mat-nav-list mat-icon {
+        margin-right: 16px;
       }
     }
   `]
