@@ -1,24 +1,24 @@
 export interface CreateContractorProfileDto {
   fullName: string;
   bio: string;
-  services: string[];
+  services: string[] | string;
   location: string;
   companyName: string;
 }
 
 export interface UpdateContractorProfileDto {
-  fullName: string;
-  bio: string;
-  services: string[];
-  location: string;
-  companyName: string;
+  fullName?: string;
+  bio?: string;
+  services?: string[] | string;
+  location?: string;
+  companyName?: string;
 }
 
 export interface ContractorProfile {
   id: number;
   fullName: string;
   bio: string;
-  services: string[];
+  services: string[] | string;
   location: string;
   companyName: string;
   userId: string;

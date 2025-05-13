@@ -81,7 +81,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           </div>
           <mat-card-content class="card-content-flex">
             <div class="bio" [matTooltip]="contractor.bio" [matTooltipDisabled]="!(contractor.bio && (contractor.bio.length || 0) > 120)">
-              {{ (contractor.bio?.length || 0) > 120 ? (contractor.bio | slice:0:120) + '...' : contractor.bio }}
+              {{ (contractor.bio.length || 0) > 120 ? (contractor.bio | slice:0:120) + '...' : contractor.bio }}
             </div>
             <div class="services">
               <mat-chip *ngFor="let service of contractor.services.slice(0,3)" color="primary" selected>

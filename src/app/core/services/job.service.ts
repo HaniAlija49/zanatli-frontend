@@ -41,14 +41,14 @@ export class JobService {
   }
 
   acceptJob(id: string): Observable<Job> {
-    return this.http.post<Job>(`${this.apiUrl}/${id}/accept`, {});
+    return this.http.patch<Job>(`${this.apiUrl}/${id}/accept`, {});
   }
 
   declineJob(id: string, reason: string): Observable<Job> {
-    return this.http.post<Job>(`${this.apiUrl}/${id}/decline`, { reason });
+    return this.http.patch<Job>(`${this.apiUrl}/${id}/decline`, { responseMessage: reason });
   }
 
   completeJob(id: string): Observable<Job> {
-    return this.http.post<Job>(`${this.apiUrl}/${id}/complete`, {});
+    return this.http.patch<Job>(`${this.apiUrl}/${id}/complete`, {});
   }
 } 

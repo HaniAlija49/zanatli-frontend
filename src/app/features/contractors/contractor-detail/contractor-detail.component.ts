@@ -15,6 +15,7 @@ import { PhotoService, Photo } from '../../../core/services/photo.service';
 import { ContractorProfile } from '../../../core/models/contractor.models';
 import { CreateJobDialogComponent } from '../../../shared/components/create-job-dialog/create-job-dialog.component';
 import { forkJoin } from 'rxjs';
+import { ContractorReviewsComponent } from '../../../contractors/contractor-reviews/contractor-reviews.component';
 
 @Component({
   selector: 'app-contractor-detail',
@@ -30,7 +31,8 @@ import { forkJoin } from 'rxjs';
     MatSnackBarModule,
     MatDialogModule,
     MatDividerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    ContractorReviewsComponent
   ],
   template: `
     <div class="contractor-detail-container" *ngIf="!isLoading; else loading">
@@ -133,6 +135,7 @@ import { forkJoin } from 'rxjs';
           </div>
         </mat-card-content>
       </mat-card>
+      <app-contractor-reviews *ngIf="contractor" [contractorId]="contractor.userId"></app-contractor-reviews>
     </div>
 
     <ng-template #loading>

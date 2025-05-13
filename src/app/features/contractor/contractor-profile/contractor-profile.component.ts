@@ -19,6 +19,7 @@ import { environment } from '../../../../environments/environment';
 import { PhotoPreviewComponent } from './photo-preview/photo-preview.component';
 import { JobCreateDialogComponent } from '../../client/client-jobs/job-create-dialog.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-contractor-profile',
@@ -87,8 +88,8 @@ import { AuthService } from '../../../core/services/auth.service';
               <h3>Portfolio</h3>
               <div class="portfolio-images">
                 <div *ngFor="let img of portfolioImages" class="portfolio-img-wrapper">
-                  <img [src]="img.url" class="portfolio-img" alt="Portfolio Image" (click)="previewPhoto(img.url, 'portfolio')">
-                  <button mat-icon-button color="warn" (click)="deletePortfolioImage(img.id)">
+                  <img [src]="img" class="portfolio-img" alt="Portfolio Image" (click)="previewPhoto(img, 'portfolio')">
+                  <button mat-icon-button color="warn" (click)="deletePortfolioImage(img)">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
@@ -317,9 +318,11 @@ export class ContractorProfileComponent implements OnInit {
   readonly separatorKeysCodes = [ENTER, COMMA] as const;
   profilePhotoUrl: string | null = null;
   isPhotoUploading = false;
-  portfolioImages: { id: number, url: string }[] = [];
+  portfolioImages: string[] = [];
   isPortfolioUploading = false;
   profileCreated = false;
+  selectedFile: File | null = null;
+  profileImageUrl: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -327,14 +330,15 @@ export class ContractorProfileComponent implements OnInit {
     private snackBar: MatSnackBar,
     private http: HttpClient,
     private dialog: MatDialog,
-    public authService: AuthService
+    public authService: AuthService,
+    private router: Router
   ) {
     this.profileForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(2)]],
       companyName: ['', [Validators.required, Validators.minLength(2)]],
       location: ['', [Validators.required, Validators.minLength(2)]],
-      bio: ['', Validators.maxLength(500)],
-      services: [[], [Validators.required, Validators.minLength(1)]]
+      bio: ['', [Validators.required, Validators.minLength(10)]],
+      services: ['', Validators.required]
     });
   }
 
@@ -346,32 +350,35 @@ export class ContractorProfileComponent implements OnInit {
     this.isLoading = true;
     this.contractorService.getMyProfile().subscribe({
       next: (profile) => {
-        this.profile = profile;
-        this.profileCreated = true;
-        if (typeof profile.services === 'string') {
-          this.services = (profile.services as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+        if (profile) {
+          if (typeof profile.services === 'string') {
+            this.services = (profile.services as string).split(',').map(s => s.trim()).filter(Boolean);
+          } else {
+            this.services = profile.services;
+          }
+          
+          this.profileForm.patchValue({
+            fullName: profile.fullName,
+            companyName: profile.companyName,
+            location: profile.location,
+            bio: profile.bio,
+            services: this.services
+          });
+          this.loadProfilePhoto();
+          this.loadPortfolioImages();
+          this.profileCreated = true;
         } else {
-          this.services = profile.services;
+          // Handle case when no profile exists
+          this.profileForm.reset();
+          this.services = [];
+          this.profileCreated = false;
         }
-        this.profileForm.patchValue({
-          fullName: profile.fullName,
-          companyName: profile.companyName,
-          location: profile.location,
-          bio: profile.bio,
-          services: this.services
-        });
-        this.loadProfilePhoto();
-        this.loadPortfolioImages();
         this.isLoading = false;
       },
       error: (error) => {
-        this.profile = null;
-        this.profileCreated = false;
         console.error('Error loading profile:', error);
-        this.snackBar.open('Error loading profile. Please try again.', 'Close', {
-          duration: 5000
-        });
         this.isLoading = false;
+        // Handle error appropriately
       }
     });
   }
@@ -420,10 +427,7 @@ export class ContractorProfileComponent implements OnInit {
         console.log('Portfolio photos response:', photos);
         this.portfolioImages = photos
           .filter(p => p.type === 1)
-          .map(p => ({
-            id: p.id,
-            url: `${environment.apiUrl}/contractors/${this.profile?.id}/photos/${p.id}`
-          }));
+          .map(p => `${environment.apiUrl}/contractors/${this.profile?.id}/photos/${p.id}`);
         console.log('Portfolio images:', this.portfolioImages);
       },
       error: (error) => {
@@ -493,8 +497,8 @@ export class ContractorProfileComponent implements OnInit {
     }
   }
 
-  deletePortfolioImage(photoId: number) {
-    this.http.delete(`${environment.apiUrl}/contractors/me/photos/${photoId}`).subscribe({
+  deletePortfolioImage(photoUrl: string) {
+    this.http.delete(`${environment.apiUrl}/contractors/me/photos/${photoUrl.split('/').pop()}`).subscribe({
       next: () => {
         this.snackBar.open('Portfolio image deleted!', 'Close', { duration: 3000 });
         this.loadPortfolioImages();
