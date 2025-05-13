@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -6,6 +6,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { CommonModule } from '@angular/common';
 import { JobService } from '../../../core/services/job.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-job-create-dialog',
@@ -45,7 +47,7 @@ import { JobService } from '../../../core/services/job.service';
     .actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
   `]
 })
-export class JobCreateDialogComponent {
+export class JobCreateDialogComponent implements OnInit {
   form: FormGroup;
   isContractorPreFilled = false;
 
@@ -53,13 +55,31 @@ export class JobCreateDialogComponent {
     private fb: FormBuilder,
     private jobService: JobService,
     private dialogRef: MatDialogRef<JobCreateDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { contractorId?: string } | null
+    @Inject(MAT_DIALOG_DATA) public data: { contractorId?: string } | null,
+    private authService: AuthService,
+    private snackBar: MatSnackBar
   ) {
     this.isContractorPreFilled = !!(data && data.contractorId);
     this.form = this.fb.group({
       description: ['', Validators.required],
       preferredDate: ['', Validators.required],
       contractorId: [{ value: data?.contractorId || '', disabled: !!data?.contractorId }]
+    });
+  }
+
+  ngOnInit() {
+    // Check if user is a contractor
+    if (this.authService.hasRole('contractor')) {
+      this.snackBar.open('Contractors cannot create job requests.', 'Close', { duration: 5000 });
+      this.dialogRef.close();
+      return;
+    }
+
+    this.form = this.fb.group({
+      title: ['', [Validators.required, Validators.minLength(3)]],
+      description: ['', [Validators.required, Validators.minLength(10)]],
+      budget: ['', [Validators.required, Validators.min(1)]],
+      deadline: ['', Validators.required]
     });
   }
 

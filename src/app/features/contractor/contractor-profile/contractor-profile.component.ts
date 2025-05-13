@@ -109,7 +109,10 @@ import { Router } from '@angular/router';
                 <mat-icon>edit</mat-icon>
                 Edit Profile
               </button>
-              <button *ngIf="authService.hasRole('client')" mat-raised-button color="accent" (click)="openJobCreateDialog()">
+              <!-- Only show Request Job button for clients -->
+              <button *ngIf="authService.hasRole('client') && !authService.hasRole('contractor')" 
+                      mat-raised-button color="accent" 
+                      (click)="openJobCreateDialog()">
                 <mat-icon>work</mat-icon>
                 Request Job
               </button>
@@ -350,6 +353,7 @@ export class ContractorProfileComponent implements OnInit {
     this.isLoading = true;
     this.contractorService.getMyProfile().subscribe({
       next: (profile) => {
+        this.profile = profile;
         if (profile) {
           if (typeof profile.services === 'string') {
             this.services = (profile.services as string).split(',').map(s => s.trim()).filter(Boolean);
@@ -372,13 +376,19 @@ export class ContractorProfileComponent implements OnInit {
           this.profileForm.reset();
           this.services = [];
           this.profileCreated = false;
+          this.profilePhotoUrl = null;
+          this.portfolioImages = [];
         }
         this.isLoading = false;
       },
       error: (error) => {
         console.error('Error loading profile:', error);
+        this.profile = null;
+        this.profileCreated = false;
+        this.profilePhotoUrl = null;
+        this.portfolioImages = [];
         this.isLoading = false;
-        // Handle error appropriately
+        this.snackBar.open('Error loading profile. Please try again.', 'Close', { duration: 5000 });
       }
     });
   }
@@ -402,12 +412,16 @@ export class ContractorProfileComponent implements OnInit {
   }
 
   loadProfilePhoto() {
+    if (!this.profile) {
+      this.profilePhotoUrl = null;
+      return;
+    }
+
     this.http.get<any[]>(`${environment.apiUrl}/contractors/me/photos`).subscribe({
       next: (photos) => {
         console.log('Profile photos response:', photos);
         const profilePhoto = photos.find(p => p.type === 0);
         if (profilePhoto) {
-          // Use the correct endpoint structure with contractorId
           this.profilePhotoUrl = `${environment.apiUrl}/contractors/${this.profile?.id}/photos/${profilePhoto.id}`;
           console.log('Profile photo URL:', this.profilePhotoUrl);
         } else {
@@ -422,6 +436,11 @@ export class ContractorProfileComponent implements OnInit {
   }
 
   loadPortfolioImages() {
+    if (!this.profile) {
+      this.portfolioImages = [];
+      return;
+    }
+
     this.http.get<any[]>(`${environment.apiUrl}/contractors/me/photos`).subscribe({
       next: (photos) => {
         console.log('Portfolio photos response:', photos);

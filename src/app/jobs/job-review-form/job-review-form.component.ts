@@ -57,17 +57,17 @@ import { CreateReviewDto } from '../../core/models/review.models';
       display: flex;
       gap: 4px;
       margin-bottom: 1rem;
-      align-items: center;        /* ✅ Ensures vertical alignment */
+      align-items: center;
     }
   
     .star-rating mat-icon {
       cursor: pointer;
       color: #ccc;
       transition: color 0.2s;
-      height: 32px;               /* ✅ Force height to avoid clipping */
-      width: 32px;                /* Optional: makes it square */
-      line-height: 1;             /* ✅ Avoid inherited line-height */
-      vertical-align: middle;     /* ✅ Align nicely with other content */
+      height: 32px;
+      width: 32px;
+      line-height: 1;
+      vertical-align: middle;
     }
   
     .star-rating mat-icon.filled {

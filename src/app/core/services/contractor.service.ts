@@ -84,6 +84,7 @@ export class ContractorService {
   }
 
   private processProfile(profile: ContractorProfile): ContractorProfile {
+    // Ensure services is always an array
     if (typeof profile.services === 'string') {
       profile.services = (profile.services as string).split(',').map((s: string) => s.trim()).filter(Boolean);
     }
@@ -92,8 +93,9 @@ export class ContractorService {
 
   private processProfileData(data: CreateContractorProfileDto | UpdateContractorProfileDto): any {
     const processedData = { ...data };
-    if (Array.isArray(processedData.services)) {
-      processedData.services = (processedData.services as string[]).join(', ');
+    // Convert services array to comma-separated string for API
+    if (processedData.services && Array.isArray(processedData.services)) {
+      (processedData as any).services = processedData.services.join(', ');
     }
     return processedData;
   }
