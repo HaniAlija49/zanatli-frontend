@@ -20,14 +20,14 @@ import { RouterModule } from '@angular/router';
       <!-- Hero Section -->
       <section class="hero">
         <div class="hero-content">
-          <h1>Find the Perfect Contractor for Your Project</h1>
-          <p>Connect with skilled professionals and get your work done efficiently</p>
+          <h1>Find Trusted Local Contractors</h1>
+          <p class="hero-subtitle">Connect with skilled professionals for all your home and business needs</p>
           <div class="hero-buttons">
-            <button mat-raised-button color="primary" routerLink="/auth/register">
-              Get Started
+            <button mat-raised-button color="primary" routerLink="/contractors">
+              Find a Contractor
             </button>
-            <button mat-stroked-button color="primary" routerLink="/contractors">
-              Browse Contractors
+            <button mat-stroked-button color="accent" routerLink="/auth/register">
+              Become a Contractor
             </button>
           </div>
         </div>
@@ -39,48 +39,50 @@ import { RouterModule } from '@angular/router';
         <div class="feature-grid">
           <mat-card>
             <mat-icon>search</mat-icon>
-            <h3>Find Contractors</h3>
-            <p>Browse through verified contractors in your area</p>
+            <h3>Easy Search</h3>
+            <p>Find the perfect contractor for your specific needs with our advanced search system</p>
           </mat-card>
 
           <mat-card>
-            <mat-icon>verified_user</mat-icon>
-            <h3>Verified Profiles</h3>
-            <p>All contractors are verified and reviewed</p>
+            <mat-icon>verified</mat-icon>
+            <h3>Verified Reviews</h3>
+            <p>Read authentic reviews from real customers to make informed decisions</p>
           </mat-card>
 
           <mat-card>
             <mat-icon>chat</mat-icon>
-            <h3>Easy Communication</h3>
-            <p>Direct messaging with contractors</p>
+            <h3>Direct Communication</h3>
+            <p>Connect directly with contractors and discuss your project requirements</p>
           </mat-card>
 
           <mat-card>
-            <mat-icon>payments</mat-icon>
-            <h3>Secure Payments</h3>
-            <p>Safe and secure payment processing</p>
+            <mat-icon>security</mat-icon>
+            <h3>Secure Platform</h3>
+            <p>Your information and transactions are protected with our secure system</p>
           </mat-card>
         </div>
       </section>
 
       <!-- CTA Section -->
       <section class="cta">
-        <h2>Ready to Get Started?</h2>
-        <p>Join thousands of satisfied customers and contractors</p>
-        <button mat-raised-button color="primary" routerLink="/auth/register">
-          Sign Up Now
-        </button>
+        <div class="cta-content">
+          <h2>Ready to Get Started?</h2>
+          <p>Join thousands of satisfied customers who found their perfect contractor on Zanatli</p>
+          <button mat-raised-button color="primary" routerLink="/contractors">
+            Start Your Search
+          </button>
+        </div>
       </section>
     </div>
   `,
   styles: [`
     .landing-container {
-      max-width: 100%;
+      width: 100%;
       overflow-x: hidden;
     }
 
     .hero {
-      background: linear-gradient(135deg, #1976d2 0%, #64b5f6 100%);
+      background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
       color: white;
       padding: 6rem 2rem;
       text-align: center;
@@ -92,13 +94,14 @@ import { RouterModule } from '@angular/router';
     }
 
     .hero h1 {
-      font-size: 3rem;
-      margin-bottom: 1rem;
+      font-size: 3.5rem;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
     }
 
-    .hero p {
-      font-size: 1.25rem;
-      margin-bottom: 2rem;
+    .hero-subtitle {
+      font-size: 1.5rem;
+      margin-bottom: 2.5rem;
       opacity: 0.9;
     }
 
@@ -108,15 +111,25 @@ import { RouterModule } from '@angular/router';
       justify-content: center;
     }
 
+    .hero-buttons button[mat-stroked-button] {
+      color: white;
+      border-color: white;
+    }
+
+    .hero-buttons button[mat-stroked-button]:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
     .features {
-      padding: 4rem 2rem;
-      background: #f5f5f5;
+      padding: 6rem 2rem;
+      background-color: #f5f5f5;
     }
 
     .features h2 {
       text-align: center;
+      font-size: 2.5rem;
       margin-bottom: 3rem;
-      font-size: 2rem;
+      color: #1a237e;
     }
 
     .feature-grid {
@@ -128,42 +141,67 @@ import { RouterModule } from '@angular/router';
     }
 
     mat-card {
-      text-align: center;
+      background: white;
       padding: 2rem;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+
+    mat-card:hover {
+      transform: translateY(-5px);
     }
 
     mat-icon {
       font-size: 3rem;
       height: 3rem;
       width: 3rem;
-      color: #1976d2;
+      color: #1a237e;
       margin-bottom: 1rem;
     }
 
     mat-card h3 {
-      margin: 1rem 0;
+      color: #1a237e;
+      margin-bottom: 1rem;
       font-size: 1.5rem;
     }
 
+    mat-card p {
+      color: #666;
+      line-height: 1.6;
+    }
+
     .cta {
+      background: linear-gradient(135deg, #0d47a1 0%, #1a237e 100%);
+      color: white;
+      padding: 6rem 2rem;
       text-align: center;
-      padding: 4rem 2rem;
-      background: #fff;
+    }
+
+    .cta-content {
+      max-width: 800px;
+      margin: 0 auto;
     }
 
     .cta h2 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
     }
 
     .cta p {
+      font-size: 1.2rem;
       margin-bottom: 2rem;
-      color: #666;
+      opacity: 0.9;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 768px) {
       .hero h1 {
-        font-size: 2rem;
+        font-size: 2.5rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.2rem;
       }
 
       .hero-buttons {
