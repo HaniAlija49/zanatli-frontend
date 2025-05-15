@@ -60,6 +60,8 @@ import { RouterLink } from '@angular/router';
     .landing {
       width: 100%;
       overflow-x: hidden;
+      min-height: 100vh;
+      background-color: #f5f5f5;
     }
 
     .hero {
@@ -177,6 +179,7 @@ import { RouterLink } from '@angular/router';
       color: white;
       padding: 6rem 2rem;
       text-align: center;
+      margin-bottom: 0;
     }
 
     .cta-content {

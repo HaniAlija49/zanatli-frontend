@@ -18,8 +18,14 @@ import { NavComponent } from './core/components/nav/nav.component';
     </main>
   `,
   styles: [`
+    :host {
+      display: block;
+      min-height: 100vh;
+    }
+    
     main {
-      min-height: calc(100vh - 64px);
+      padding-top: 64px;
+      background-color: #f5f5f5;
     }
   `]
 })

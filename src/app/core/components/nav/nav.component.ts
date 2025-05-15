@@ -49,7 +49,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
 
           <ng-container *ngIf="isLoggedIn">
             <ng-container *ngIf="activeRole === 'client'">
-              <a mat-list-item routerLink="/client/dashboard" (click)="sidenav.close()">
+              <a mat-list-item routerLink="/client" (click)="sidenav.close()">
                 <mat-icon>dashboard</mat-icon>
                 <span>Dashboard</span>
               </a>
@@ -117,7 +117,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
 
             <ng-container *ngIf="isLoggedIn">
               <ng-container *ngIf="activeRole === 'client'">
-                <a mat-button routerLink="/client/dashboard">Dashboard</a>
+                <a mat-button routerLink="/client">Dashboard</a>
                 <a mat-button routerLink="/client/jobs">My Jobs</a>
               </ng-container>
 
@@ -143,7 +143,6 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
             </ng-container>
           </div>
         </mat-toolbar>
-        <router-outlet></router-outlet>
       </mat-sidenav-content>
     </mat-sidenav-container>
   `,
@@ -194,7 +193,12 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
     }
 
     mat-sidenav-container {
-      height: 100vh;
+      height: 64px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
     }
 
     mat-nav-list {
