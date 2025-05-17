@@ -5,7 +5,6 @@ import { Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
@@ -20,7 +19,6 @@ import { RegisterDto } from '../../../core/models/auth.models';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatCheckboxModule,
     MatCardModule
   ],
   template: `
@@ -52,11 +50,6 @@ import { RegisterDto } from '../../../core/models/auth.models';
               <mat-error *ngIf="registerForm.get('password')?.hasError('minlength')">Password must be at least 6 characters</mat-error>
             </mat-form-field>
 
-            <div class="role-checkboxes">
-              <mat-checkbox formControlName="isClient">Client</mat-checkbox>
-              <mat-checkbox formControlName="isContractor">Contractor</mat-checkbox>
-            </div>
-
             <button mat-raised-button color="primary" type="submit" [disabled]="registerForm.invalid">
               Register
             </button>
@@ -87,12 +80,6 @@ import { RegisterDto } from '../../../core/models/auth.models';
       flex-direction: column;
       gap: 1rem;
     }
-    .role-checkboxes {
-      display: flex;
-      flex-direction: row;
-      gap: 2rem;
-      margin-bottom: 1rem;
-    }
     button {
       width: 100%;
     }
@@ -110,21 +97,19 @@ export class RegisterComponent {
     this.registerForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      isClient: [false],
-      isContractor: [false]
+      password: ['', [Validators.required, Validators.minLength(6)]]
     });
   }
 
   onSubmit() {
     if (this.registerForm.valid) {
-      const { fullName, email, password, isClient, isContractor } = this.registerForm.value;
+      const { fullName, email, password } = this.registerForm.value;
       const registerData: RegisterDto = {
         fullName,
         email,
         password,
-        isClient,
-        isContractor
+        isClient: true,
+        isContractor: false
       };
 
       this.authService.register(registerData).subscribe({

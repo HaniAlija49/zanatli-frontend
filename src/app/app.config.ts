@@ -4,6 +4,7 @@ import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
+import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { environment } from '../environments/environment';
 
@@ -13,7 +14,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes), 
     provideClientHydration(withEventReplay()),
     provideHttpClient(
-      withInterceptors([jwtInterceptor]),
+      withInterceptors([jwtInterceptor, errorInterceptor]),
       withFetch()
     ),
     provideAnimations(),
