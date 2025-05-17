@@ -79,9 +79,9 @@ import { MatSelectModule } from '@angular/material/select';
                 <span class="contractor-name">{{contractor.fullName}}</span>
                 <span class="company">{{contractor.companyName}}</span>
               </div>
-              <div class="rating" *ngIf="contractor.rating">
+              <div class="rating" *ngIf="contractor.averageRating">
                 <mat-icon>star</mat-icon>
-                <span>{{contractor.rating}} <span class="review-count">({{contractor.reviewCount || 0}} reviews)</span></span>
+                <span>{{contractor.averageRating.toFixed(1)}} <span class="review-count">({{contractor.reviewCount || 0}} {{contractor.reviewCount === 1 ? 'review' : 'reviews'}})</span></span>
               </div>
               <div class="location-badge">
                 <mat-icon>location_on</mat-icon>
@@ -247,11 +247,16 @@ import { MatSelectModule } from '@angular/material/select';
       gap: 0.5rem;
       color: #ffc107;
       font-size: 1rem;
-    }
-    .review-count {
-      color: #888;
-      font-size: 0.95em;
-      margin-left: 0.2em;
+
+      mat-icon {
+        color: #ffc107;
+      }
+
+      .review-count {
+        color: #666;
+        font-size: 0.9em;
+        margin-left: 0.2em;
+      }
     }
     .location-badge {
       display: inline-flex;

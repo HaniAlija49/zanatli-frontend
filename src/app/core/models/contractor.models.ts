@@ -20,18 +20,18 @@ export interface UpdateContractorProfileDto {
 
 export interface ContractorProfile {
   id: number;
+  userId: string;
   fullName: string;
+  companyName: string;
+  location: string;
   bio: string;
   services: string[];
-  location: string;
-  companyName: string;
-  userId: string;
-  email: string;
-  profileImage?: string;
-  phoneNumber?: string;
-  rating?: number;
-  reviewCount?: number;
   priceLevel: number;
+  phoneNumber?: string;
+  averageRating?: number;
+  reviewCount?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export enum PhotoType {

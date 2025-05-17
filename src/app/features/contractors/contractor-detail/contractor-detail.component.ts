@@ -50,9 +50,9 @@ import { AuthService } from '../../../core/services/auth.service';
               <mat-card-title>{{contractor.fullName}}</mat-card-title>
               <mat-card-subtitle>{{contractor.companyName}}</mat-card-subtitle>
             </mat-card-header>
-            <div class="rating" *ngIf="contractor.rating">
+            <div class="rating" *ngIf="contractor.averageRating">
               <mat-icon>star</mat-icon>
-              <span>{{contractor.rating}} ({{contractor.reviewCount || 0}} reviews)</span>
+              <span>{{contractor.averageRating.toFixed(1)}} <span class="review-count">({{contractor.reviewCount || 0}} {{contractor.reviewCount === 1 ? 'review' : 'reviews'}})</span></span>
             </div>
           </div>
         </div>
@@ -69,15 +69,12 @@ import { AuthService } from '../../../core/services/auth.service';
                 <span>{{contractor.location}}</span>
               </div>
               <div class="price-level">
-                {{ '$'.repeat(contractor.priceLevel) }}
+                <span class="label">Price:</span>
+                <span class="value">{{ contractor.priceLevel ? '$'.repeat(contractor.priceLevel) : '-' }}</span>
               </div>
               <div class="contact" *ngIf="contractor.phoneNumber">
                 <mat-icon>phone</mat-icon>
                 <span>{{contractor.phoneNumber}}</span>
-              </div>
-              <div class="email">
-                <mat-icon>email</mat-icon>
-                <span>{{contractor.email}}</span>
               </div>
             </div>
           </div>
@@ -217,12 +214,17 @@ import { AuthService } from '../../../core/services/auth.service';
       align-items: center;
       gap: 0.5rem;
       color: #ffc107;
-      margin-top: 0.5rem;
+      font-size: 1rem;
+      margin: 0.5rem 0;
 
       mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        color: #ffc107;
+      }
+
+      .review-count {
+        color: #666;
+        font-size: 0.9em;
+        margin-left: 0.2em;
       }
     }
 
