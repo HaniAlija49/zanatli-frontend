@@ -29,7 +29,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
     UserMenuComponent
   ],
   template: `
-    <mat-sidenav-container>
+    <mat-sidenav-container class="sidenav-container">
       <mat-sidenav #sidenav mode="over">
         <mat-nav-list>
           <a mat-list-item routerLink="/contractors" (click)="sidenav.close()">
@@ -143,10 +143,22 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
             </ng-container>
           </div>
         </mat-toolbar>
+        <div class="content-wrapper">
+          <ng-content></ng-content>
+        </div>
       </mat-sidenav-content>
     </mat-sidenav-container>
   `,
   styles: [`
+    .sidenav-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+    }
+
     .spacer {
       flex: 1 1 auto;
     }
@@ -186,19 +198,22 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
     mat-toolbar {
       color: #222;
       background: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1001;
     }
 
     mat-sidenav {
       width: 280px;
     }
 
-    mat-sidenav-container {
-      height: 64px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
+    .content-wrapper {
+      padding-top: 64px;
+      height: calc(100vh - 64px);
+      overflow-y: auto;
+      background-color: #f5f5f5;
     }
 
     mat-nav-list {
@@ -245,6 +260,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
     @media (max-width: 768px) {
       .menu-button {
         display: block;
+        margin-right: 8px;
       }
 
       .desktop-nav {
@@ -257,6 +273,10 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
 
       mat-nav-list mat-icon {
         margin-right: 16px;
+      }
+
+      .logo {
+        font-size: 1.2rem;
       }
     }
   `]

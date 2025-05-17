@@ -12,20 +12,21 @@ import { NavComponent } from './core/components/nav/nav.component';
     NavComponent
   ],
   template: `
-    <app-nav></app-nav>
-    <main>
-      <router-outlet></router-outlet>
-    </main>
+    <app-nav>
+      <main>
+        <router-outlet></router-outlet>
+      </main>
+    </app-nav>
   `,
   styles: [`
     :host {
       display: block;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
     }
     
     main {
-      padding-top: 64px;
-      background-color: #f5f5f5;
+      height: 100%;
     }
   `]
 })
