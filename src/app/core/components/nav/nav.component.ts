@@ -7,11 +7,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/auth.models';
 import { RoleToggleComponent } from '../../../shared/components/role-toggle/role-toggle.component';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { UserMenuComponent } from '../user-menu/user-menu.component';
+import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-nav',
@@ -25,6 +27,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
     MatMenuModule,
     MatSidenavModule,
     MatListModule,
+    MatDialogModule,
     RoleToggleComponent,
     UserMenuComponent
   ],
@@ -82,7 +85,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
               ></app-role-toggle>
             </div>
 
-            <button mat-list-item *ngIf="isLoggedIn && roles.includes('client') && !roles.includes('contractor')" (click)="becomeContractor(); sidenav.close()">
+            <button mat-list-item *ngIf="isLoggedIn && roles.includes('client') && !roles.includes('contractor')" (click)="confirmBecomeContractor(); sidenav.close()">
               <mat-icon>engineering</mat-icon>
               <span>Be a Contractor</span>
             </button>
@@ -102,7 +105,8 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
           </button>
 
           <a routerLink="/" class="logo">
-            Zanatli
+            <span class="logo-text">Zanatly</span>
+            <span class="logo-tagline">Find Your Perfect Contractor</span>
           </a>
 
           <span class="spacer"></span>
@@ -134,7 +138,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
                 *ngIf="(roles || []).length > 1"
               ></app-role-toggle>
 
-              <button mat-stroked-button color="primary" *ngIf="isLoggedIn && roles.includes('client') && !roles.includes('contractor')" (click)="becomeContractor()">
+              <button mat-stroked-button color="primary" *ngIf="isLoggedIn && roles.includes('client') && !roles.includes('contractor')" (click)="confirmBecomeContractor()">
                 <mat-icon>engineering</mat-icon>
                 Be a Contractor
               </button>
@@ -167,8 +171,26 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
       color: #222;
       text-decoration: none;
       font-size: 1.5rem;
-      font-weight: 500;
+      font-weight: 700;
       margin-left: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .logo-text {
+      background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 1.8rem;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-tagline {
+      font-size: 0.7rem;
+      color: #666;
+      font-weight: 400;
+      margin-top: -2px;
     }
 
     .menu-button {
@@ -287,7 +309,12 @@ export class NavComponent implements OnInit {
   roles: string[] = [];
   activeRole: string = '';
 
-  constructor(private authService: AuthService, private router: Router, private snackBar: MatSnackBar) {}
+  constructor(
+    private authService: AuthService, 
+    private router: Router, 
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
+  ) {}
 
   ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
@@ -315,6 +342,24 @@ export class NavComponent implements OnInit {
 
   logout() {
     this.authService.logout();
+  }
+
+  confirmBecomeContractor() {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      data: {
+        title: 'Become a Contractor',
+        message: 'Are you sure you want to become a contractor? This will allow you to offer your services to clients.',
+        confirmText: 'Yes, Become a Contractor',
+        cancelText: 'Cancel'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.becomeContractor();
+      }
+    });
   }
 
   becomeContractor() {
