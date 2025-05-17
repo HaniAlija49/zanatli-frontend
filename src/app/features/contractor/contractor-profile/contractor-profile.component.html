@@ -1,0 +1,31 @@
+            <div class="profile-info">
+              <h2>{{ profile.fullName }}</h2>
+              <p class="company">{{ profile.companyName }}</p>
+              <p class="location">
+                <mat-icon>location_on</mat-icon>
+                {{ profile.location }}
+              </p>
+              <p class="price-level">
+                <mat-icon>attach_money</mat-icon>
+                {{ '💰'.repeat(profile.priceLevel) }}
+              </p>
+              <p class="bio">{{ profile.bio }}</p>
+              <div class="services">
+                <h3>Services Offered</h3>
+                <mat-chip-list>
+                  <mat-chip *ngFor="let service of services" color="primary" selected>
+                    {{ service }}
+                  </mat-chip>
+                </mat-chip-list>
+              </div>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Price Level</mat-label>
+              <mat-select formControlName="priceLevel" required>
+                <mat-option [value]="1">$ (Budget)</mat-option>
+                <mat-option [value]="2">$$ (Standard)</mat-option>
+                <mat-option [value]="3">$$$ (Premium)</mat-option>
+              </mat-select>
+              <mat-error *ngIf="profileForm.get('priceLevel')?.hasError('required')">Price level is required</mat-error>
+            </mat-form-field> 

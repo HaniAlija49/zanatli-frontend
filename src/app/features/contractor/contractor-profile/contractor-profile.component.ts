@@ -69,6 +69,14 @@ import { Router } from '@angular/router';
                 <h2>{{profile.fullName}}</h2>
                 <p class="company-name">{{profile.companyName}}</p>
                 <p class="location"><mat-icon>location_on</mat-icon> {{profile.location}}</p>
+                <p class="price-level">
+                  <span class="label">Price:</span>
+                  <span class="value">{{ profile.priceLevel ? '$'.repeat(profile.priceLevel) : '-' }}</span>
+                </p>
+                <p class="phone" *ngIf="profile.phoneNumber">
+                  <mat-icon>phone</mat-icon>
+                  {{profile.phoneNumber}}
+                </p>
               </div>
             </div>
 
@@ -160,6 +168,19 @@ import { Router } from '@angular/router';
                        (matChipInputTokenEnd)="addService($event)">
               </mat-chip-grid>
               <mat-error *ngIf="profileForm.get('services')?.hasError('required')">At least one service is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Price Level</mat-label>
+              <input matInput formControlName="priceLevel" type="number" required min="1" max="3">
+              <mat-error *ngIf="profileForm.get('priceLevel')?.hasError('required')">Price level is required</mat-error>
+              <mat-error *ngIf="profileForm.get('priceLevel')?.hasError('min')">Price level must be at least 1</mat-error>
+              <mat-error *ngIf="profileForm.get('priceLevel')?.hasError('max')">Price level must be at most 3</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Phone Number</mat-label>
+              <input matInput formControlName="phoneNumber">
             </mat-form-field>
 
             <div class="actions">
@@ -310,6 +331,23 @@ import { Router } from '@angular/router';
     .portfolio-img:hover {
       transform: scale(1.05);
     }
+    .price-level {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #666;
+      margin: 8px 0;
+
+      .label {
+        color: #666;
+        font-weight: 500;
+      }
+
+      .value {
+        color: #4CAF50;
+        font-weight: 600;
+      }
+    }
   `]
 })
 export class ContractorProfileComponent implements OnInit {
@@ -341,7 +379,9 @@ export class ContractorProfileComponent implements OnInit {
       companyName: ['', [Validators.required, Validators.minLength(2)]],
       location: ['', [Validators.required, Validators.minLength(2)]],
       bio: ['', [Validators.required, Validators.minLength(10)]],
-      services: ['', Validators.required]
+      services: ['', Validators.required],
+      priceLevel: [1, [Validators.required, Validators.min(1), Validators.max(3)]],
+      phoneNumber: ['']
     });
   }
 
@@ -366,7 +406,9 @@ export class ContractorProfileComponent implements OnInit {
             companyName: profile.companyName,
             location: profile.location,
             bio: profile.bio,
-            services: this.services
+            services: this.services,
+            priceLevel: profile.priceLevel || 1,
+            phoneNumber: profile.phoneNumber || ''
           });
           this.loadProfilePhoto();
           this.loadPortfolioImages();
@@ -406,7 +448,9 @@ export class ContractorProfileComponent implements OnInit {
         companyName: this.profile.companyName,
         location: this.profile.location,
         bio: this.profile.bio,
-        services: this.services
+        services: this.services,
+        priceLevel: this.profile.priceLevel || 1,
+        phoneNumber: this.profile.phoneNumber || ''
       });
     }
   }
@@ -549,9 +593,16 @@ export class ContractorProfileComponent implements OnInit {
     if (this.profileForm.valid) {
       this.isLoading = true;
       const formData = this.profileForm.value;
+      
+      // Ensure services is an array
+      const services = Array.isArray(formData.services) 
+        ? formData.services 
+        : formData.services.split(',').map((s: string) => s.trim()).filter(Boolean);
+
       const data = {
         ...formData,
-        services: this.services.join(', ')  // Convert array to comma-separated string
+        services: services,
+        priceLevel: parseInt(formData.priceLevel, 10)
       };
 
       let request$;

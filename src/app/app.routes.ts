@@ -33,6 +33,10 @@ export const routes: Routes = [
       {
         path: 'jobs',
         loadComponent: () => import('./features/client/client-jobs/client-jobs.component').then(m => m.ClientJobsComponent)
+      },
+      {
+        path: 'jobs/:jobId/messages',
+        loadComponent: () => import('./features/messages/messages.component').then(m => m.MessagesComponent)
       }
     ]
   },
@@ -53,6 +57,10 @@ export const routes: Routes = [
       {
         path: 'profile',
         loadComponent: () => import('./features/contractor/contractor-profile/contractor-profile.component').then(m => m.ContractorProfileComponent)
+      },
+      {
+        path: 'jobs/:jobId/messages',
+        loadComponent: () => import('./features/messages/messages.component').then(m => m.MessagesComponent)
       }
     ]
   },

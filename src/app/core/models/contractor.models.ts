@@ -4,6 +4,8 @@ export interface CreateContractorProfileDto {
   services: string[];
   location: string;
   companyName: string;
+  priceLevel: number;
+  phoneNumber?: string;
 }
 
 export interface UpdateContractorProfileDto {
@@ -12,6 +14,8 @@ export interface UpdateContractorProfileDto {
   services?: string[];
   location?: string;
   companyName?: string;
+  priceLevel?: number;
+  phoneNumber?: string;
 }
 
 export interface ContractorProfile {
@@ -24,9 +28,10 @@ export interface ContractorProfile {
   userId: string;
   email: string;
   profileImage?: string;
-  phone?: string;
+  phoneNumber?: string;
   rating?: number;
   reviewCount?: number;
+  priceLevel: number;
 }
 
 export enum PhotoType {

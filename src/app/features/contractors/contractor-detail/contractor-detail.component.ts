@@ -68,9 +68,12 @@ import { AuthService } from '../../../core/services/auth.service';
                 <mat-icon>location_on</mat-icon>
                 <span>{{contractor.location}}</span>
               </div>
-              <div class="contact" *ngIf="contractor.phone">
+              <div class="price-level">
+                {{ '$'.repeat(contractor.priceLevel) }}
+              </div>
+              <div class="contact" *ngIf="contractor.phoneNumber">
                 <mat-icon>phone</mat-icon>
-                <span>{{contractor.phone}}</span>
+                <span>{{contractor.phoneNumber}}</span>
               </div>
               <div class="email">
                 <mat-icon>email</mat-icon>
@@ -130,7 +133,7 @@ import { AuthService } from '../../../core/services/auth.service';
               <mat-icon>add</mat-icon>
               Create Job Request
             </button>
-            <button mat-stroked-button color="primary" class="contact-btn" *ngIf="contractor.phone">
+            <button mat-stroked-button color="primary" class="contact-btn" *ngIf="contractor.phoneNumber">
               <mat-icon>phone</mat-icon>
               Call
             </button>
@@ -368,6 +371,17 @@ import { AuthService } from '../../../core/services/auth.service';
       justify-content: center;
       align-items: center;
       height: 400px;
+    }
+
+    .price-level {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #4CAF50;
+    }
+
+    .price-level mat-icon {
+      color: #4CAF50;
     }
 
     @media (max-width: 768px) {

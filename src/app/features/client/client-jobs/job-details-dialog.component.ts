@@ -36,7 +36,8 @@ import { Review } from '../../../core/models/review.models';
           <mat-card-content>
             <div class="row"><span class="label"><mat-icon>fingerprint</mat-icon> Job ID:</span> <span>{{ job.id }}</span></div>
             <div class="row"><span class="label"><mat-icon>description</mat-icon> Description:</span> <span>{{ job.description || '—' }}</span></div>
-            <div class="row"><span class="label"><mat-icon>flag</mat-icon> Status:</span> <mat-chip [ngClass]="'status-' + ((statusMap[job.status] || job.status) + '').toLowerCase()">{{ statusMap[job.status] || job.status }}</mat-chip></div>
+            <div class="row"><span class="label"><mat-icon>flag</mat-icon> Status:</span> <mat-chip [ngClass]="getStatusClass(job.status)">{{ getStatusText(job.status) }}</mat-chip></div>
+            <div class="row" *ngIf="job.responseMessage"><span class="label"><mat-icon>message</mat-icon> Response:</span> <span class="response-message">{{ job.responseMessage }}</span></div>
             <div class="row"><span class="label"><mat-icon>event</mat-icon> Preferred Date:</span> <span>{{ job.preferredDate ? (job.preferredDate | date:'mediumDate') : '—' }}</span></div>
             <div class="row" *ngIf="job.createdAt"><span class="label"><mat-icon>calendar_today</mat-icon> Created At:</span> <span>{{ job.createdAt | date:'medium' }}</span></div>
             <div class="row" *ngIf="job.updatedAt"><span class="label"><mat-icon>update</mat-icon> Updated At:</span> <span>{{ job.updatedAt | date:'medium' }}</span></div>
@@ -45,8 +46,7 @@ import { Review } from '../../../core/models/review.models';
               <span>
                 <div *ngIf="job.contractor">
                   <div><b>ID:</b> {{ job.contractor.id }}</div>
-                  <div *ngIf="job.contractor.id"><b>Name:</b> {{ job.contractor.id }}</div>
-                  <div *ngIf="job.contractor.fullName"><b>Email:</b> {{ job.contractor.fullName }}</div>
+                  <div><b>Email:</b> {{ job.contractor.email }}</div>
                 </div>
                 <div *ngIf="!job.contractor">—</div>
               </span>
@@ -96,6 +96,14 @@ import { Review } from '../../../core/models/review.models';
     mat-card-content { display: flex; flex-direction: column; gap: 18px; padding: 12px 0 0 0; }
     .row { display: flex; align-items: center; gap: 10px; font-size: 15px; padding: 2px 0; }
     .label { min-width: 130px; font-weight: 500; color: #444; display: flex; align-items: center; gap: 4px; }
+    .response-message { 
+      color: #d32f2f;
+      font-style: italic;
+      background: #ffebee;
+      padding: 8px 12px;
+      border-radius: 4px;
+      border-left: 3px solid #d32f2f;
+    }
     mat-chip { font-size: 14px; padding: 4px 12px; font-weight: 500; }
     .status-pending { background-color: #fff3e0; color: #f57c00; }
     .status-accepted { background-color: #e3f2fd; color: #2196f3; }
@@ -192,5 +200,14 @@ export class JobDetailsDialogComponent implements OnInit {
 
   isJobCompleted(job: any): boolean {
     return job.status === 3 || job.status === 'Completed';
+  }
+
+  getStatusClass(status: number | string): string {
+    const statusStr = (this.statusMap[status] || status).toString().toLowerCase();
+    return `status-${statusStr}`;
+  }
+
+  getStatusText(status: number | string): string {
+    return this.statusMap[status] || status.toString();
   }
 } 

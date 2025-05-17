@@ -17,13 +17,14 @@ export interface Job {
   updatedAt: Date;
   clientId: string;
   contractorId: string;
+  responseMessage?: string | null;
   client?: {
     id: string;
-    fullName: string;
+    email: string;
   };
   contractor?: {
     id: string;
-    fullName: string;
+    email: string;
   };
 }
 
@@ -32,7 +33,6 @@ export enum JobStatus {
   Accepted = 'Accepted',
   Declined = 'Declined',
   Completed = 'Completed',
-  Cancelled = 'Cancelled'
 }
 
 export interface CreateJobDto {

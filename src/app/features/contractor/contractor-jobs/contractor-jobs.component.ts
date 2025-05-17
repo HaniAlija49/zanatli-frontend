@@ -1,20 +1,22 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { FormsModule } from '@angular/forms';
+import { MatSelectModule } from '@angular/material/select';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { JobService } from '../../../core/services/job.service';
 import { Job, JobStatus } from '../../../core/models/job.models';
-import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
-import { DeclineDialogComponent } from '../../../shared/components/decline-dialog/decline-dialog.component';
 import { ContractorJobDetailsDialogComponent } from './contractor-job-details-dialog.component';
+import { ChatDialogComponent } from '../../messages/chat-dialog.component';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 
 @Component({
   selector: 'app-contractor-jobs',
@@ -26,47 +28,51 @@ import { ContractorJobDetailsDialogComponent } from './contractor-job-details-di
     MatTableModule,
     MatIconModule,
     MatDialogModule,
-    MatSnackBarModule,
-    MatProgressSpinnerModule,
+    MatPaginatorModule,
+    MatSortModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     FormsModule,
-    ConfirmDialogComponent,
-    DeclineDialogComponent,
-    ContractorJobDetailsDialogComponent
+    ReactiveFormsModule,
+    ContractorJobDetailsDialogComponent,
   ],
   template: `
     <div class="jobs-container">
       <mat-card>
         <mat-card-header>
-          <mat-card-title>My Jobs</mat-card-title>
+          <mat-card-title>Available Jobs</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <div *ngIf="isLoading" class="loading-container">
-            <mat-spinner></mat-spinner>
+          <!-- Filters -->
+          <div class="filters-container">
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Search</mat-label>
+              <input matInput (keyup)="applyFilter($event)" placeholder="Search jobs..." #input>
+            </mat-form-field>
           </div>
 
           <!-- Responsive Table for Desktop, Cards for Mobile -->
-          <ng-container *ngIf="!isLoading">
-            <table mat-table [dataSource]="jobs" class="mat-elevation-z8 jobs-table" *ngIf="!isMobile">
+          <ng-container>
+            <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8 jobs-table" *ngIf="!isMobile">
               <ng-container matColumnDef="id">
-                <th mat-header-cell *matHeaderCellDef>ID</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
                 <td mat-cell *matCellDef="let job">{{job.id}}</td>
               </ng-container>
               <ng-container matColumnDef="description">
-                <th mat-header-cell *matHeaderCellDef>Description</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Description</th>
                 <td mat-cell *matCellDef="let job">{{job.description}}</td>
               </ng-container>
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
                 <td mat-cell *matCellDef="let job">
-                  <span [ngClass]="'status-' + ((statusMap[job.status] || job.status) + '').toLowerCase()">
-                    {{ statusMap[job.status] || job.status }}
+                  <span [ngClass]="getStatusClass(job.status)">
+                    {{ getStatusText(job.status) }}
                   </span>
                 </td>
               </ng-container>
               <ng-container matColumnDef="preferredDate">
-                <th mat-header-cell *matHeaderCellDef>Preferred Date</th>
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Preferred Date</th>
                 <td mat-cell *matCellDef="let job">{{job.preferredDate | date}}</td>
               </ng-container>
               <ng-container matColumnDef="actions">
@@ -75,33 +81,27 @@ import { ContractorJobDetailsDialogComponent } from './contractor-job-details-di
                   <button mat-icon-button color="primary" (click)="openJobDetailsDialog(job)">
                     <mat-icon>visibility</mat-icon>
                   </button>
-                  <ng-container [ngSwitch]="job.status">
-                    <button *ngSwitchCase="0" mat-icon-button color="primary" 
-                            (click)="acceptJob(job)" [disabled]="isActionLoading">
-                      <mat-icon>check</mat-icon>
-                    </button>
-                    <button *ngSwitchCase="0" mat-icon-button color="warn" 
-                            (click)="openDeclineDialog(job)" [disabled]="isActionLoading">
-                      <mat-icon>close</mat-icon>
-                    </button>
-                    <button *ngSwitchCase="1" mat-icon-button color="accent" 
-                            (click)="completeJob(job)" [disabled]="isActionLoading">
-                      <mat-icon>done_all</mat-icon>
-                    </button>
-                  </ng-container>
+                  <button mat-icon-button color="accent" (click)="navigateToMessages(toNumber(job.id))">
+                    <mat-icon>message</mat-icon>
+                  </button>
                 </td>
               </ng-container>
               <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+              <!-- Row shown when there is no matching data. -->
+              <tr class="mat-row" *matNoDataRow>
+                <td class="mat-cell" colspan="5">No data matching the filter "{{input.value}}"</td>
+              </tr>
             </table>
 
             <!-- Card layout for mobile -->
             <div class="job-card-list" *ngIf="isMobile">
-              <mat-card class="job-card" *ngFor="let job of jobs">
+              <mat-card class="job-card" *ngFor="let job of dataSource.filteredData">
                 <div class="job-card-header">
                   <div class="job-card-title">#{{job.id}} - {{job.description}}</div>
-                  <span class="job-card-status" [ngClass]="'status-' + ((statusMap[job.status] || job.status) + '').toLowerCase()">
-                    {{ statusMap[job.status] || job.status }}
+                  <span class="job-card-status" [ngClass]="getStatusClass(job.status)">
+                    {{ getStatusText(job.status) }}
                   </span>
                 </div>
                 <div class="job-card-row"><b>Preferred Date:</b> {{job.preferredDate | date}}</div>
@@ -109,27 +109,14 @@ import { ContractorJobDetailsDialogComponent } from './contractor-job-details-di
                   <button mat-icon-button color="primary" (click)="openJobDetailsDialog(job)">
                     <mat-icon>visibility</mat-icon>
                   </button>
-                  <ng-container [ngSwitch]="job.status">
-                    <button *ngSwitchCase="0" mat-icon-button color="primary" 
-                            (click)="acceptJob(job)" [disabled]="isActionLoading">
-                      <mat-icon>check</mat-icon>
-                    </button>
-                    <button *ngSwitchCase="0" mat-icon-button color="warn" 
-                            (click)="openDeclineDialog(job)" [disabled]="isActionLoading">
-                      <mat-icon>close</mat-icon>
-                    </button>
-                    <button *ngSwitchCase="1" mat-icon-button color="accent" 
-                            (click)="completeJob(job)" [disabled]="isActionLoading">
-                      <mat-icon>done_all</mat-icon>
-                    </button>
-                  </ng-container>
+                  <button mat-icon-button color="accent" (click)="navigateToMessages(toNumber(job.id))">
+                    <mat-icon>message</mat-icon>
+                  </button>
                 </div>
               </mat-card>
             </div>
 
-            <div *ngIf="jobs.length === 0" class="no-jobs">
-              <p>No jobs found.</p>
-            </div>
+            <mat-paginator [pageSizeOptions]="[5, 10, 25, 100]" aria-label="Select page of jobs"></mat-paginator>
           </ng-container>
         </mat-card-content>
       </mat-card>
@@ -177,15 +164,15 @@ import { ContractorJobDetailsDialogComponent } from './contractor-job-details-di
       gap: 0.5rem;
       margin-top: 0.5rem;
     }
-    .loading-container {
+    .filters-container {
       display: flex;
-      justify-content: center;
-      padding: 2rem;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
     }
-    .no-jobs {
-      text-align: center;
-      padding: 2rem;
-      color: #666;
+    .filter-field {
+      flex: 1;
+      min-width: 200px;
     }
     .status-pending {
       color: #f57c00;
@@ -213,6 +200,12 @@ import { ContractorJobDetailsDialogComponent } from './contractor-job-details-di
       .job-card-list {
         display: flex;
       }
+      .filters-container {
+        flex-direction: column;
+      }
+      .filter-field {
+        width: 100%;
+      }
     }
     @media (min-width: 801px) {
       .job-card-list {
@@ -224,8 +217,13 @@ import { ContractorJobDetailsDialogComponent } from './contractor-job-details-di
 export class ContractorJobsComponent implements OnInit, OnDestroy {
   jobs: Job[] = [];
   displayedColumns: string[] = ['id', 'description', 'status', 'preferredDate', 'actions'];
-  isLoading = false;
-  isActionLoading = false;
+  isMobile: boolean = false;
+  dataSource: MatTableDataSource<Job>;
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild('input') input!: HTMLInputElement;
+
   statusMap: Record<string | number, string> = {
     0: 'Pending',
     1: 'Accepted',
@@ -236,127 +234,50 @@ export class ContractorJobsComponent implements OnInit, OnDestroy {
     'Declined': 'Declined',
     'Completed': 'Completed'
   };
-  isMobile = false;
 
   constructor(
-    private jobService: JobService,
+    private jobService: JobService, 
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {}
+    private router: Router,
+    private breakpointObserver: BreakpointObserver
+  ) {
+    this.dataSource = new MatTableDataSource<Job>();
+    this.breakpointObserver.observe([
+      Breakpoints.HandsetPortrait
+    ]).subscribe(result => {
+      this.isMobile = result.matches;
+    });
+  }
 
   ngOnInit() {
     this.loadJobs();
-    this.checkScreenSize();
-    window.addEventListener('resize', this.checkScreenSize.bind(this));
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
   }
 
   ngOnDestroy() {
-    window.removeEventListener('resize', this.checkScreenSize.bind(this));
-  }
-
-  checkScreenSize() {
-    this.isMobile = window.innerWidth <= 800;
   }
 
   loadJobs() {
-    this.isLoading = true;
     this.jobService.getContractorJobs().subscribe({
       next: (jobs) => {
         this.jobs = jobs;
-        this.isLoading = false;
+        this.dataSource.data = jobs;
       },
       error: (error) => {
         console.error('Error loading jobs:', error);
-        this.snackBar.open('Error loading jobs. Please try again.', 'Close', {
-          duration: 5000
-        });
-        this.isLoading = false;
       }
     });
   }
 
-  acceptJob(job: Job) {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '300px',
-      data: {
-        title: 'Accept Job',
-        message: 'Are you sure you want to accept this job?'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.isActionLoading = true;
-        this.jobService.acceptJob(job.id).subscribe({
-          next: () => {
-            this.snackBar.open('Job accepted successfully!', 'Close', { duration: 5000 });
-            this.loadJobs();
-            this.isActionLoading = false;
-          },
-          error: (error) => {
-            console.error('Error accepting job:', error);
-            this.snackBar.open('Error accepting job. Please try again.', 'Close', { duration: 5000 });
-            this.isActionLoading = false;
-          }
-        });
-      }
-    });
-  }
-
-  openDeclineDialog(job: Job) {
-    const dialogRef = this.dialog.open(DeclineDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Decline Job',
-        message: 'Please provide a reason for declining this job:'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.isActionLoading = true;
-        this.jobService.declineJob(job.id, result).subscribe({
-          next: () => {
-            this.snackBar.open('Job declined successfully!', 'Close', { duration: 5000 });
-            this.loadJobs();
-            this.isActionLoading = false;
-          },
-          error: (error) => {
-            console.error('Error declining job:', error);
-            this.snackBar.open('Error declining job. Please try again.', 'Close', { duration: 5000 });
-            this.isActionLoading = false;
-          }
-        });
-      }
-    });
-  }
-
-  completeJob(job: Job) {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '300px',
-      data: {
-        title: 'Complete Job',
-        message: 'Are you sure you want to mark this job as complete?'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.isActionLoading = true;
-        this.jobService.completeJob(job.id).subscribe({
-          next: () => {
-            this.snackBar.open('Job marked as complete!', 'Close', { duration: 5000 });
-            this.loadJobs();
-            this.isActionLoading = false;
-          },
-          error: (error) => {
-            console.error('Error completing job:', error);
-            this.snackBar.open('Error completing job. Please try again.', 'Close', { duration: 5000 });
-            this.isActionLoading = false;
-          }
-        });
-      }
-    });
+  applyFilter(event?: Event) {
+    if (event) {
+      const filterValue = (event.target as HTMLInputElement).value;
+      this.dataSource.filter = filterValue.trim().toLowerCase();
+    }
   }
 
   openJobDetailsDialog(job: Job) {
@@ -369,5 +290,30 @@ export class ContractorJobsComponent implements OnInit, OnDestroy {
         this.loadJobs();
       }
     });
+  }
+
+  toNumber(value: string | number): number {
+    return Number(value);
+  }
+
+  navigateToMessages(jobId: number) {
+    this.dialog.open(ChatDialogComponent, {
+      data: { jobId },
+      width: '100%',
+      maxWidth: '500px',
+      height: '600px',
+      maxHeight: '100vh',
+      panelClass: 'chat-dialog-container',
+      disableClose: false
+    });
+  }
+
+  getStatusClass(status: number | string): string {
+    const statusStr = (this.statusMap[status] || status).toString().toLowerCase();
+    return `status-${statusStr}`;
+  }
+
+  getStatusText(status: number | string): string {
+    return this.statusMap[status] || status.toString();
   }
 } 

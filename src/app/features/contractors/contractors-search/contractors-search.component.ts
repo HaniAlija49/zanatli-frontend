@@ -14,6 +14,7 @@ import { ContractorService } from '../../../core/services/contractor.service';
 import { ContractorProfile } from '../../../core/models/contractor.models';
 import { PhotoService, Photo } from '../../../core/services/photo.service';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSelectModule } from '@angular/material/select';
 
 @Component({
   selector: 'app-contractors-search',
@@ -30,7 +31,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatChipsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatSelectModule
   ],
   template: `
     <div class="search-container">
@@ -49,6 +51,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
               <mat-label>Location</mat-label>
               <input matInput formControlName="location" placeholder="Location">
               <mat-icon matSuffix>location_on</mat-icon>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Price Level</mat-label>
+              <mat-select formControlName="priceLevels" multiple>
+                <mat-option value="1">$</mat-option>
+                <mat-option value="2">$$</mat-option>
+                <mat-option value="3">$$$</mat-option>
+              </mat-select>
             </mat-form-field>
             <button mat-flat-button color="primary" type="submit" [disabled]="isLoading" class="search-btn">
               <mat-icon>search</mat-icon>
@@ -76,6 +86,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
               <div class="location-badge">
                 <mat-icon>location_on</mat-icon>
                 <span>{{contractor.location}}</span>
+              </div>
+              <div class="price-level">
+                <span class="label">Price:</span>
+                <span class="value">{{ contractor.priceLevel ? '$'.repeat(contractor.priceLevel) : '-' }}</span>
               </div>
             </div>
           </div>
@@ -251,6 +265,33 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       margin-top: 0.2rem;
       width: fit-content;
     }
+    .price-level {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: #e8f5e9;
+      color: #4CAF50;
+      border-radius: 12px;
+      padding: 0.2rem 0.7rem 0.2rem 0.5rem;
+      font-size: 0.98rem;
+      margin-top: 0.2rem;
+      width: fit-content;
+
+      .label {
+        color: #666;
+        font-weight: 500;
+      }
+
+      .value {
+        color: #4CAF50;
+        font-weight: 600;
+      }
+    }
+    .price-level mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
     .bio {
       margin: 1.2rem 0 0.7rem 0;
       color: #444;
@@ -379,7 +420,8 @@ export class ContractorsSearchComponent implements OnInit {
   ) {
     this.searchForm = this.fb.group({
       search: [''],
-      location: ['']
+      location: [''],
+      priceLevels: [[]]
     });
   }
 
@@ -387,9 +429,9 @@ export class ContractorsSearchComponent implements OnInit {
     this.loadContractors();
   }
 
-  loadContractors(service?: string, location?: string) {
+  loadContractors(service?: string, location?: string, priceLevels?: number[]) {
     this.isLoading = true;
-    this.contractorService.getContractors(service, location).subscribe({
+    this.contractorService.getContractors(service, location, priceLevels).subscribe({
       next: (contractors) => {
         contractors.forEach(contractor => {
           if (typeof contractor.services === 'string') {
@@ -429,9 +471,9 @@ export class ContractorsSearchComponent implements OnInit {
   onSearch() {
     if (this.searchForm.valid) {
       this.isLoading = true;
-      const { search, location } = this.searchForm.value;
+      const { search, location, priceLevels } = this.searchForm.value;
       // Use API filtering
-      this.loadContractors(search, location);
+      this.loadContractors(search, location, priceLevels);
     }
   }
 } 

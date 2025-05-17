@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ContractorProfile, CreateContractorProfileDto, UpdateContractorProfileDto } from '../models/contractor.models';
 
@@ -12,11 +12,14 @@ export class ContractorService {
 
   constructor(private http: HttpClient) {}
 
-  getContractors(service?: string, location?: string): Observable<ContractorProfile[]> {
+  getContractors(service?: string, location?: string, priceLevels?: number[]): Observable<ContractorProfile[]> {
     let url = this.apiUrl;
     const params = new URLSearchParams();
     if (service) params.append('service', service);
     if (location) params.append('location', location);
+    if (priceLevels && priceLevels.length > 0) {
+      priceLevels.forEach(level => params.append('priceLevels', level.toString()));
+    }
     if (params.toString()) url += `?${params.toString()}`;
     return this.http.get<ContractorProfile[]>(url);
   }
@@ -52,8 +55,16 @@ export class ContractorService {
 
   updateProfile(data: UpdateContractorProfileDto): Observable<ContractorProfile> {
     const processedData = this.processProfileData(data);
-    return this.http.put<ContractorProfile>(`${this.apiUrl}/me`, processedData).pipe(
-      map(profile => this.processProfile(profile)),
+    return this.http.patch<ContractorProfile>(`${this.apiUrl}/me`, processedData).pipe(
+      // Since the backend returns 204 No Content, we need to fetch the updated profile
+      switchMap(() => this.getMyProfile().pipe(
+        map(profile => {
+          if (!profile) {
+            throw new Error('Failed to fetch updated profile');
+          }
+          return profile;
+        })
+      )),
       catchError(error => {
         console.error('Error updating profile:', error);
         throw error;
@@ -93,10 +104,26 @@ export class ContractorService {
 
   private processProfileData(data: CreateContractorProfileDto | UpdateContractorProfileDto): any {
     const processedData = { ...data };
-    // Convert services array to comma-separated string for API
-    if (processedData.services && Array.isArray(processedData.services)) {
-      (processedData as any).services = processedData.services.join(', ');
+    
+    // Ensure all required fields are present
+    if (!processedData.fullName || !processedData.companyName || !processedData.location || 
+        !processedData.bio || !processedData.services || !processedData.priceLevel) {
+      throw new Error('All required fields must be provided');
     }
-    return processedData;
+
+    // Convert to PascalCase and ensure services is a string
+    return {
+      FullName: processedData.fullName,
+      Bio: processedData.bio,
+      Services: Array.isArray(processedData.services) 
+        ? processedData.services.join(', ')
+        : processedData.services,
+      Location: processedData.location,
+      CompanyName: processedData.companyName,
+      PhoneNumber: processedData.phoneNumber || '',
+      PriceLevel: typeof processedData.priceLevel === 'string' 
+        ? parseInt(processedData.priceLevel, 10)
+        : processedData.priceLevel
+    };
   }
 } 

@@ -19,5 +19,4 @@ export interface JobDetails {
     email?: string;
     phone?: string;
   };
-  // Add any other fields you want to display
 } 
