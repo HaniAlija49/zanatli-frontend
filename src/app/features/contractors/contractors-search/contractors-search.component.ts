@@ -73,15 +73,27 @@ import { PhotoService, Photo } from '../../../core/services/photo.service';
         </mat-card-content>
       </mat-card>
 
-      <div class="view-controls">
-        <mat-button-toggle-group [(ngModel)]="viewMode" (change)="onViewModeChange()">
-          <mat-button-toggle value="cards">
-            <mat-icon>grid_view</mat-icon>
-          </mat-button-toggle>
-          <mat-button-toggle value="rows">
-            <mat-icon>view_list</mat-icon>
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+      <div class="controls-container">
+        <div class="view-controls">
+          <mat-form-field appearance="outline" class="sort-field">
+            <mat-label>Sort by</mat-label>
+            <mat-select [(ngModel)]="sortBy" (selectionChange)="onSortChange()">
+              <mat-option value="rating">Rating (High to Low)</mat-option>
+              <mat-option value="price_asc">Price (Low to High)</mat-option>
+              <mat-option value="price_desc">Price (High to Low)</mat-option>
+              <mat-option value="name_asc">Name (A to Z)</mat-option>
+              <mat-option value="name_desc">Name (Z to A)</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-button-toggle-group [(ngModel)]="viewMode" (change)="onViewModeChange()">
+            <mat-button-toggle value="cards">
+              <mat-icon>grid_view</mat-icon>
+            </mat-button-toggle>
+            <mat-button-toggle value="rows">
+              <mat-icon>view_list</mat-icon>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
       </div>
 
       <div class="results-container" [ngClass]="viewMode" *ngIf="contractors.length > 0">
@@ -152,10 +164,29 @@ import { PhotoService, Photo } from '../../../core/services/photo.service';
       margin: 0 auto;
     }
 
+    .controls-container {
+      margin: 1rem 0;
+      padding: 0 1rem;
+    }
+
     .view-controls {
       display: flex;
-      justify-content: flex-end;
-      margin: 1rem 0;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .sort-field {
+      width: 220px;
+      margin: 0;
+    }
+
+    .sort-field ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+      display: none;
     }
 
     .results-container {
@@ -901,6 +932,7 @@ export class ContractorsSearchComponent implements OnInit {
   pageSize = 10;
   currentPage = 0;
   totalItems = 0;
+  sortBy = 'rating';
 
   constructor(
     private fb: FormBuilder,
@@ -919,6 +951,25 @@ export class ContractorsSearchComponent implements OnInit {
     this.loadContractors();
   }
 
+  onSortChange() {
+    this.contractors.sort((a, b) => {
+      switch (this.sortBy) {
+        case 'rating':
+          return (b.averageRating || 0) - (a.averageRating || 0);
+        case 'price_asc':
+          return (a.priceLevel || 0) - (b.priceLevel || 0);
+        case 'price_desc':
+          return (b.priceLevel || 0) - (a.priceLevel || 0);
+        case 'name_asc':
+          return (a.fullName || '').localeCompare(b.fullName || '');
+        case 'name_desc':
+          return (b.fullName || '').localeCompare(a.fullName || '');
+        default:
+          return 0;
+      }
+    });
+  }
+
   loadContractors(service?: string, location?: string, priceLevels?: number[]) {
     this.isLoading = true;
     this.contractorService.getContractors(
@@ -929,7 +980,6 @@ export class ContractorsSearchComponent implements OnInit {
       this.pageSize
     ).subscribe({
       next: (response) => {
-        // Handle both paginated and non-paginated responses
         const contractors = Array.isArray(response) ? response : response.items;
         this.contractors = contractors.map(contractor => {
           if (typeof contractor.services === 'string') {
@@ -939,6 +989,7 @@ export class ContractorsSearchComponent implements OnInit {
         });
         this.totalItems = Array.isArray(response) ? contractors.length : response.totalItems;
         this.loadProfilePhotos(this.contractors);
+        this.onSortChange(); // Apply initial sort
         this.isLoading = false;
       },
       error: (error) => {
