@@ -35,7 +35,6 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
     MatSelectModule,
     FormsModule,
     ReactiveFormsModule,
-    JobDetailsDialogComponent,
     RouterModule,
   ],
   template: `

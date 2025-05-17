@@ -34,8 +34,7 @@ import { Router } from '@angular/router';
     MatChipsModule,
     MatIconModule,
     MatSnackBarModule,
-    MatProgressSpinnerModule,
-    JobCreateDialogComponent
+    MatProgressSpinnerModule
   ],
   template: `
     <div class="profile-container">
