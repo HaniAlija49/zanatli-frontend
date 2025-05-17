@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, catchError, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ContractorProfile, CreateContractorProfileDto, UpdateContractorProfileDto } from '../models/contractor.models';
@@ -12,16 +12,21 @@ export class ContractorService {
 
   constructor(private http: HttpClient) {}
 
-  getContractors(service?: string, location?: string, priceLevels?: number[]): Observable<ContractorProfile[]> {
-    let url = this.apiUrl;
-    const params = new URLSearchParams();
-    if (service) params.append('service', service);
-    if (location) params.append('location', location);
-    if (priceLevels && priceLevels.length > 0) {
-      priceLevels.forEach(level => params.append('priceLevels', level.toString()));
-    }
-    if (params.toString()) url += `?${params.toString()}`;
-    return this.http.get<ContractorProfile[]>(url);
+  getContractors(
+    search?: string,
+    location?: string,
+    priceLevels?: number[],
+    page: number = 1,
+    pageSize: number = 10
+  ): Observable<ContractorProfile[] | { items: ContractorProfile[], totalItems: number }> {
+    let params = new HttpParams();
+    if (search) params = params.set('search', search);
+    if (location) params = params.set('location', location);
+    if (priceLevels?.length) params = params.set('priceLevels', priceLevels.join(','));
+    params = params.set('page', page.toString());
+    params = params.set('pageSize', pageSize.toString());
+
+    return this.http.get<ContractorProfile[] | { items: ContractorProfile[], totalItems: number }>(`${this.apiUrl}`, { params });
   }
 
   getContractor(id: string): Observable<ContractorProfile> {

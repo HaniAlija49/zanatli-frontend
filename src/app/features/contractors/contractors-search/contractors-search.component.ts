@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -10,11 +10,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSelectModule } from '@angular/material/select';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ContractorService } from '../../../core/services/contractor.service';
 import { ContractorProfile } from '../../../core/models/contractor.models';
 import { PhotoService, Photo } from '../../../core/services/photo.service';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSelectModule } from '@angular/material/select';
 
 @Component({
   selector: 'app-contractors-search',
@@ -23,6 +25,7 @@ import { MatSelectModule } from '@angular/material/select';
     CommonModule,
     RouterModule,
     ReactiveFormsModule,
+    FormsModule,
     MatCardModule,
     MatInputModule,
     MatFormFieldModule,
@@ -32,7 +35,9 @@ import { MatSelectModule } from '@angular/material/select';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatSelectModule
+    MatSelectModule,
+    MatPaginatorModule,
+    MatButtonToggleModule
   ],
   template: `
     <div class="search-container">
@@ -68,17 +73,30 @@ import { MatSelectModule } from '@angular/material/select';
         </mat-card-content>
       </mat-card>
 
-      <div class="results-container" *ngIf="contractors.length > 0">
+      <div class="view-controls">
+        <mat-button-toggle-group [(ngModel)]="viewMode" (change)="onViewModeChange()">
+          <mat-button-toggle value="cards">
+            <mat-icon>grid_view</mat-icon>
+          </mat-button-toggle>
+          <mat-button-toggle value="rows">
+            <mat-icon>view_list</mat-icon>
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      <div class="results-container" [ngClass]="viewMode" *ngIf="contractors.length > 0">
         <mat-card *ngFor="let contractor of contractors" class="contractor-card">
           <div class="card-header-flex">
             <div class="profile-img-wrapper">
               <img class="profile-img" [src]="contractorPhotos[contractor.id] || 'assets/images/default-profile.png'" alt="Profile" />
             </div>
-            <div class="header-info">
-              <div class="name-row">
-                <span class="contractor-name">{{contractor.fullName}}</span>
-                <span class="company">{{contractor.companyName}}</span>
-              </div>
+          </div>
+          <div class="card-content-flex">
+            <div class="name-row">
+              <span class="contractor-name">{{contractor.fullName}}</span>
+              <span class="company">{{contractor.companyName}}</span>
+            </div>
+            <div class="info-row">
               <div class="rating" *ngIf="contractor.averageRating">
                 <mat-icon>star</mat-icon>
                 <span>{{contractor.averageRating.toFixed(1)}} <span class="review-count">({{contractor.reviewCount || 0}} {{contractor.reviewCount === 1 ? 'review' : 'reviews'}})</span></span>
@@ -92,26 +110,24 @@ import { MatSelectModule } from '@angular/material/select';
                 <span class="value">{{ contractor.priceLevel ? '$'.repeat(contractor.priceLevel) : '-' }}</span>
               </div>
             </div>
-          </div>
-          <mat-card-content class="card-content-flex">
             <div class="bio" [matTooltip]="contractor.bio" [matTooltipDisabled]="!(contractor.bio && (contractor.bio.length || 0) > 120)">
               {{ (contractor.bio.length || 0) > 120 ? (contractor.bio | slice:0:120) + '...' : contractor.bio }}
             </div>
             <div class="services">
               <mat-chip *ngFor="let service of contractor.services.slice(0,3)" color="primary" selected>
                 <span class="chip-content">
-              <mat-icon class="service-icon">build</mat-icon>
-            {{ service }}
-           </span>
+                  <mat-icon class="service-icon">build</mat-icon>
+                  {{ service }}
+                </span>
               </mat-chip>
               <span *ngIf="contractor.services.length > 3" class="more-services">+{{contractor.services.length - 3}} more</span>
             </div>
-          </mat-card-content>
-          <div class="actions">
-            <a mat-flat-button color="accent" [routerLink]="['/contractors', contractor.id]">
-              <mat-icon>visibility</mat-icon>
-              View Profile
-            </a>
+            <div class="actions">
+              <a mat-flat-button color="accent" [routerLink]="['/contractors', contractor.id]">
+                <mat-icon>visibility</mat-icon>
+                View Profile
+              </a>
+            </div>
           </div>
         </mat-card>
       </div>
@@ -119,6 +135,14 @@ import { MatSelectModule } from '@angular/material/select';
       <div class="no-results" *ngIf="!isLoading && contractors.length === 0">
         <p>No contractors found. Try adjusting your search criteria.</p>
       </div>
+
+      <mat-paginator
+        [length]="totalItems"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        (page)="onPageChange($event)"
+        aria-label="Select page">
+      </mat-paginator>
     </div>
   `,
   styles: [`
@@ -126,6 +150,469 @@ import { MatSelectModule } from '@angular/material/select';
       padding: 2rem;
       max-width: 1200px;
       margin: 0 auto;
+    }
+
+    .view-controls {
+      display: flex;
+      justify-content: flex-end;
+      margin: 1rem 0;
+    }
+
+    .results-container {
+      margin: 2rem 0;
+    }
+
+    .results-container.cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 2rem;
+    }
+
+    .results-container.cards .contractor-card {
+      border-radius: 18px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      transition: box-shadow 0.2s, transform 0.2s;
+      padding-bottom: 1rem;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 320px;
+      position: relative;
+      height: 100%;
+    }
+
+    .results-container.cards .contractor-card:hover {
+      box-shadow: 0 8px 32px rgba(25, 118, 210, 0.18);
+      transform: translateY(-4px) scale(1.02);
+    }
+
+    .results-container.cards .card-header-flex {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1.5rem 1.5rem 0 1.5rem;
+      border-bottom: 1px solid #f0f0f0;
+      padding-bottom: 0.8rem;
+    }
+
+    .results-container.cards .profile-img-wrapper {
+      flex-shrink: 0;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      border: 3px solid #fff;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .results-container.cards .profile-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .results-container.cards .header-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .results-container.cards .name-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .results-container.cards .contractor-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #222;
+    }
+
+    .results-container.cards .company {
+      font-size: 1rem;
+      color: #1976d2;
+      font-weight: 500;
+    }
+
+    .results-container.cards .rating {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #ffc107;
+      font-size: 1rem;
+    }
+
+    .results-container.cards .rating .review-count {
+      color: #666;
+      font-size: 0.9em;
+      margin-left: 0.2em;
+    }
+
+    .results-container.cards .location-badge,
+    .results-container.cards .price-level {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      border-radius: 12px;
+      padding: 0.3rem 0.8rem;
+      font-size: 1rem;
+      min-height: 32px;
+      box-sizing: border-box;
+      line-height: 1;
+      white-space: nowrap;
+      margin: 0;
+    }
+
+    .results-container.cards .location-badge {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .results-container.cards .price-level {
+      background: #e8f5e9;
+      color: #4CAF50;
+    }
+
+    .results-container.cards .price-level .label {
+      color: #666;
+      font-weight: 500;
+    }
+
+    .results-container.cards .price-level .value {
+      color: #4CAF50;
+      font-weight: 600;
+    }
+
+    .results-container.cards .location-badge mat-icon,
+    .results-container.cards .price-level mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .results-container.cards .bio {
+      margin: 1.2rem 0 0.7rem 0;
+      color: #444;
+      font-size: 1.05rem;
+      min-height: 2.5em;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .results-container.cards .services {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .results-container.cards .chip-content {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .results-container.cards .service-icon {
+      font-size: 16px;
+      padding-top: 8px;
+    }
+
+    .results-container.cards .more-services {
+      color: #1976d2;
+      font-weight: 500;
+      margin-left: 0.5rem;
+      font-size: 0.98rem;
+      align-self: center;
+    }
+
+    .results-container.cards .card-content-flex {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 0 1.5rem;
+    }
+
+    .results-container.cards .actions {
+      margin-top: auto;
+      display: flex;
+      justify-content: flex-end;
+      padding: 0 1.5rem 1rem 1.5rem;
+    }
+
+    .results-container.cards .actions a[mat-flat-button] {
+      font-weight: 600;
+      font-size: 1.05rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+      padding: 0.6rem 1.5rem;
+      background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%);
+      color: #fff;
+      transition: background 0.2s;
+    }
+
+    .results-container.cards .actions a[mat-flat-button]:hover {
+      background: linear-gradient(90deg, #1565c0 0%, #1976d2 100%);
+      color: #fff;
+    }
+
+    .results-container.rows {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .results-container.rows .contractor-card {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      padding: 0;
+      gap: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      height: 220px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .results-container.rows .card-header-flex {
+      flex: 0 0 220px;
+      border: none;
+      padding: 0;
+      background: #f8f9fa;
+      position: relative;
+    }
+
+    .results-container.rows .card-header-flex::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: #e0e0e0;
+    }
+
+    .results-container.rows .profile-img-wrapper {
+      width: 100%;
+      height: 100%;
+      border-radius: 0 !important;
+      overflow: hidden;
+      border: none !important;
+    }
+
+    .results-container.rows .profile-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 0 !important;
+    }
+
+    .results-container.rows .card-content-flex {
+      flex: 1;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: white;
+      position: relative;
+    }
+
+    .results-container.rows .name-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .results-container.rows .contractor-name {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #222;
+    }
+
+    .results-container.rows .company {
+      font-size: 1.1rem;
+      color: #1976d2;
+      font-weight: 500;
+    }
+
+    .results-container.rows .info-row {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+
+    .results-container.rows .info-row {
+      margin-bottom: 1.5rem;
+    }
+
+    .results-container.rows .rating,
+    .results-container.cards .rating {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #ffc107;
+      font-size: 1.1rem;
+      margin-right: 1rem;
+      padding: 0.5rem 0;
+    }
+
+    .results-container.rows .rating .review-count,
+    .results-container.cards .rating .review-count {
+      color: #666;
+      font-size: 0.9em;
+      margin-left: 0.5em;
+    }
+
+    .results-container.rows .location-badge,
+    .results-container.rows .price-level,
+    .results-container.cards .location-badge,
+    .results-container.cards .price-level {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      height: 36px;
+      box-sizing: border-box;
+      line-height: 1;
+      white-space: nowrap;
+      margin: 0.5rem 0;
+      vertical-align: middle;
+    }
+
+    .results-container.rows .location-badge,
+    .results-container.cards .location-badge {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .results-container.rows .price-level,
+    .results-container.cards .price-level {
+      background: #e8f5e9;
+      color: #4CAF50;
+    }
+
+    .results-container.rows .price-level .label,
+    .results-container.cards .price-level .label {
+      color: #666;
+      font-weight: 500;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .results-container.rows .price-level .value,
+    .results-container.cards .price-level .value {
+      color: #4CAF50;
+      font-weight: 600;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .results-container.rows .location-badge mat-icon,
+    .results-container.rows .price-level mat-icon,
+    .results-container.cards .location-badge mat-icon,
+    .results-container.cards .price-level mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+    }
+
+    .results-container.rows .bio {
+      margin: 0;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: #444;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .results-container.rows .services {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0;
+      margin-bottom: 1rem;
+    }
+
+    .results-container.rows .services mat-chip {
+      font-size: 0.95rem;
+      padding: 0.4rem 0.8rem;
+    }
+
+    .results-container.rows .services .chip-content {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .results-container.rows .services .service-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    .results-container.rows .more-services {
+      color: #1976d2;
+      font-weight: 500;
+      font-size: 0.95rem;
+      align-self: center;
+    }
+
+    .results-container.rows .actions {
+      position: absolute;
+      bottom: 1.75rem;
+      right: 1.75rem;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .results-container.rows .actions a[mat-flat-button] {
+      font-weight: 600;
+      font-size: 1.05rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+      padding: 0.6rem 1.5rem;
+      background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%);
+      color: #fff;
+      transition: background 0.2s;
+    }
+
+    .results-container.rows .actions a[mat-flat-button]:hover {
+      background: linear-gradient(90deg, #1565c0 0%, #1976d2 100%);
+      color: #fff;
+    }
+
+    mat-paginator {
+      margin-top: 2rem;
+      background: transparent;
     }
 
     .search-card {
@@ -168,12 +655,6 @@ import { MatSelectModule } from '@angular/material/select';
     .search-btn:hover {
       background: linear-gradient(90deg, #1565c0 0%, #1976d2 100%);
       color: #fff;
-    }
-
-    .results-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 2rem;
     }
 
     .contractor-card {
@@ -308,22 +789,22 @@ import { MatSelectModule } from '@angular/material/select';
       white-space: nowrap;
     }
     .services {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.2rem;
-}
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+    }
 
-.chip-content {
-  display: flex;
-  align-items: center; /* ✅ vertical alignment fix */
-  gap: 0.3rem;
-}
+    .chip-content {
+      display: flex;
+      align-items: center; /* ✅ vertical alignment fix */
+      gap: 0.3rem;
+    }
 
-.service-icon {
-  font-size: 16px;
-  padding-top: 8px;
-}
+    .service-icon {
+      font-size: 16px;
+      padding-top: 8px;
+    }
     .more-services {
       color: #1976d2;
       font-weight: 500;
@@ -416,6 +897,10 @@ export class ContractorsSearchComponent implements OnInit {
   contractors: ContractorProfile[] = [];
   contractorPhotos: { [contractorId: number]: string } = {};
   isLoading = false;
+  viewMode: 'cards' | 'rows' = 'cards';
+  pageSize = 10;
+  currentPage = 0;
+  totalItems = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -436,15 +921,24 @@ export class ContractorsSearchComponent implements OnInit {
 
   loadContractors(service?: string, location?: string, priceLevels?: number[]) {
     this.isLoading = true;
-    this.contractorService.getContractors(service, location, priceLevels).subscribe({
-      next: (contractors) => {
-        contractors.forEach(contractor => {
+    this.contractorService.getContractors(
+      service, 
+      location, 
+      priceLevels,
+      this.currentPage + 1,
+      this.pageSize
+    ).subscribe({
+      next: (response) => {
+        // Handle both paginated and non-paginated responses
+        const contractors = Array.isArray(response) ? response : response.items;
+        this.contractors = contractors.map(contractor => {
           if (typeof contractor.services === 'string') {
             contractor.services = (contractor.services as string).split(',').map((s: string) => s.trim());
           }
+          return contractor;
         });
-        this.contractors = contractors;
-        this.loadProfilePhotos(contractors);
+        this.totalItems = Array.isArray(response) ? contractors.length : response.totalItems;
+        this.loadProfilePhotos(this.contractors);
         this.isLoading = false;
       },
       error: (error) => {
@@ -455,6 +949,31 @@ export class ContractorsSearchComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  onPageChange(event: PageEvent) {
+    this.pageSize = event.pageSize;
+    this.currentPage = event.pageIndex;
+    this.loadContractors(
+      this.searchForm.get('search')?.value,
+      this.searchForm.get('location')?.value,
+      this.searchForm.get('priceLevels')?.value
+    );
+  }
+
+  onViewModeChange() {
+    // View mode is handled by CSS classes
+  }
+
+  onSearch() {
+    if (this.searchForm.valid) {
+      this.currentPage = 0; // Reset to first page on new search
+      this.loadContractors(
+        this.searchForm.get('search')?.value,
+        this.searchForm.get('location')?.value,
+        this.searchForm.get('priceLevels')?.value
+      );
+    }
   }
 
   loadProfilePhotos(contractors: ContractorProfile[]) {
@@ -471,14 +990,5 @@ export class ContractorsSearchComponent implements OnInit {
         }
       });
     });
-  }
-
-  onSearch() {
-    if (this.searchForm.valid) {
-      this.isLoading = true;
-      const { search, location, priceLevels } = this.searchForm.value;
-      // Use API filtering
-      this.loadContractors(search, location, priceLevels);
-    }
   }
 } 
