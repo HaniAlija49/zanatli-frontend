@@ -11,7 +11,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { JobService } from '../../../core/services/job.service';
 import { Job, JobStatus } from '../../../core/models/job.models';
 import { JobDetailsDialogComponent } from './job-details-dialog.component';
@@ -36,6 +36,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
     FormsModule,
     ReactiveFormsModule,
     JobDetailsDialogComponent,
+    RouterModule,
   ],
   template: `
     <div class="jobs-container">
@@ -91,29 +92,70 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 
               <!-- Row shown when there is no matching data. -->
               <tr class="mat-row" *matNoDataRow>
-                <td class="mat-cell" colspan="5">No data matching the filter "{{input.value}}"</td>
+                <td class="mat-cell" colspan="5">
+                  <div class="no-data-container">
+                    <mat-icon class="no-data-icon">work_off</mat-icon>
+                    <h3>No Jobs Found</h3>
+                    <p *ngIf="input.value">No jobs matching "{{input.value}}"</p>
+                    <p *ngIf="!input.value">You haven't created any jobs yet.</p>
+                    <div class="no-data-suggestions" *ngIf="input.value">
+                      <p>Try these suggestions:</p>
+                      <ul>
+                        <li>Check your spelling</li>
+                        <li>Try different keywords</li>
+                        <li>Remove the search filter</li>
+                      </ul>
+                    </div>
+                    <button mat-flat-button color="primary" routerLink="/contractors" *ngIf="!input.value">
+                      <mat-icon>add</mat-icon>
+                      Create New Job
+                    </button>
+                  </div>
+                </td>
               </tr>
             </table>
 
             <!-- Card layout for mobile -->
             <div class="job-card-list" *ngIf="isMobile">
-              <mat-card class="job-card" *ngFor="let job of dataSource.filteredData">
-                <div class="job-card-header">
-                  <div class="job-card-title">#{{job.id}} - {{job.description}}</div>
-                  <span class="job-card-status" [ngClass]="getStatusClass(job.status)">
-                    {{ getStatusText(job.status) }}
-                  </span>
-                </div>
-                <div class="job-card-row"><b>Preferred Date:</b> {{job.preferredDate | date}}</div>
-                <div class="job-card-actions">
-                  <button mat-icon-button color="primary" (click)="openJobDetailsDialog(job)">
-                    <mat-icon>visibility</mat-icon>
+              <ng-container *ngIf="dataSource.filteredData.length > 0; else noDataMobile">
+                <mat-card class="job-card" *ngFor="let job of dataSource.filteredData">
+                  <div class="job-card-header">
+                    <div class="job-card-title">#{{job.id}} - {{job.description}}</div>
+                    <span class="job-card-status" [ngClass]="getStatusClass(job.status)">
+                      {{ getStatusText(job.status) }}
+                    </span>
+                  </div>
+                  <div class="job-card-row"><b>Preferred Date:</b> {{job.preferredDate | date}}</div>
+                  <div class="job-card-actions">
+                    <button mat-icon-button color="primary" (click)="openJobDetailsDialog(job)">
+                      <mat-icon>visibility</mat-icon>
+                    </button>
+                    <button mat-icon-button color="accent" (click)="navigateToMessages(toNumber(job.id))">
+                      <mat-icon>message</mat-icon>
+                    </button>
+                  </div>
+                </mat-card>
+              </ng-container>
+              <ng-template #noDataMobile>
+                <div class="no-data-container">
+                  <mat-icon class="no-data-icon">work_off</mat-icon>
+                  <h3>No Jobs Found</h3>
+                  <p *ngIf="input.value">No jobs matching "{{input.value}}"</p>
+                  <p *ngIf="!input.value">You haven't created any jobs yet.</p>
+                  <div class="no-data-suggestions" *ngIf="input.value">
+                    <p>Try these suggestions:</p>
+                    <ul>
+                      <li>Check your spelling</li>
+                      <li>Try different keywords</li>
+                      <li>Remove the search filter</li>
+                    </ul>
+                  </div>
+                  <button mat-flat-button color="primary" routerLink="/contractors" *ngIf="!input.value">
+                    <mat-icon>add</mat-icon>
+                    Create New Job
                   </button>
-                  <button mat-icon-button color="accent" (click)="navigateToMessages(toNumber(job.id))">
-                    <mat-icon>message</mat-icon>
-                  </button>
                 </div>
-              </mat-card>
+              </ng-template>
             </div>
 
             <mat-paginator [pageSizeOptions]="[5, 10, 25, 100]" aria-label="Select page of jobs"></mat-paginator>
@@ -212,6 +254,79 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
       .job-card-list {
         display: none;
       }
+    }
+    .no-data-container {
+      text-align: center;
+      padding: 3rem 1rem;
+      background: #f8f9fa;
+      border-radius: 12px;
+      margin: 1rem 0;
+    }
+
+    .no-data-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: #bdbdbd;
+      margin-bottom: 1rem;
+    }
+
+    .no-data-container h3 {
+      font-size: 1.5rem;
+      color: #424242;
+      margin: 0 0 0.5rem 0;
+      font-weight: 500;
+    }
+
+    .no-data-container p {
+      color: #666;
+      font-size: 1.1rem;
+      margin: 0 0 1.5rem 0;
+    }
+
+    .no-data-suggestions {
+      text-align: left;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .no-data-suggestions p {
+      color: #424242;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .no-data-suggestions ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .no-data-suggestions li {
+      color: #666;
+      padding: 0.3rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .no-data-suggestions li::before {
+      content: '•';
+      color: #1976d2;
+      font-size: 1.2rem;
+    }
+
+    .no-data-container button {
+      margin-top: 1rem;
+      padding: 0.5rem 1.5rem;
+      font-size: 1rem;
+    }
+
+    .no-data-container button mat-icon {
+      margin-right: 0.5rem;
     }
   `
   ]

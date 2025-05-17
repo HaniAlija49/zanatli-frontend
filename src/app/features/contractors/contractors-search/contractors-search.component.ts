@@ -153,7 +153,24 @@ interface PaginatedResponse {
       </div>
 
       <div class="no-results" *ngIf="!isLoading && contractors.length === 0">
-        <p>No contractors found. Try adjusting your search criteria.</p>
+        <div class="no-results-content">
+          <mat-icon class="no-results-icon">search_off</mat-icon>
+          <h3>No Contractors Found</h3>
+          <p>We couldn't find any contractors matching your search criteria.</p>
+          <div class="no-results-suggestions">
+            <p>Try these suggestions:</p>
+            <ul>
+              <li>Check your spelling</li>
+              <li>Try different keywords</li>
+              <li>Remove some filters</li>
+              <li>Search in a different location</li>
+            </ul>
+          </div>
+          <button mat-flat-button color="primary" (click)="clearSearch()">
+            <mat-icon>refresh</mat-icon>
+            Clear Search
+          </button>
+        </div>
       </div>
 
       <mat-paginator
@@ -882,8 +899,70 @@ interface PaginatedResponse {
     }
     .no-results {
       text-align: center;
-      padding: 2rem;
+      padding: 3rem 1rem;
+      background: #f8f9fa;
+      border-radius: 12px;
+      margin: 2rem 0;
+    }
+    .no-results-content {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .no-results-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: #bdbdbd;
+      margin-bottom: 1rem;
+    }
+    .no-results h3 {
+      font-size: 1.5rem;
+      color: #424242;
+      margin: 0 0 0.5rem 0;
+      font-weight: 500;
+    }
+    .no-results p {
       color: #666;
+      font-size: 1.1rem;
+      margin: 0 0 1.5rem 0;
+    }
+    .no-results-suggestions {
+      text-align: left;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .no-results-suggestions p {
+      color: #424242;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    .no-results-suggestions ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .no-results-suggestions li {
+      color: #666;
+      padding: 0.3rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .no-results-suggestions li::before {
+      content: '•';
+      color: #1976d2;
+      font-size: 1.2rem;
+    }
+    .no-results button {
+      margin-top: 1rem;
+      padding: 0.5rem 1.5rem;
+      font-size: 1rem;
+    }
+    .no-results button mat-icon {
+      margin-right: 0.5rem;
     }
     mat-spinner {
       display: inline-block;
@@ -1157,5 +1236,11 @@ export class ContractorsSearchComponent implements OnInit {
         }
       });
     });
+  }
+
+  clearSearch() {
+    this.searchForm.reset();
+    this.currentPage = 0;
+    this.loadContractors();
   }
 } 
