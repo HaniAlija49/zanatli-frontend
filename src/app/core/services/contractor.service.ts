@@ -9,6 +9,30 @@ interface PaginatedResponse {
   items: ContractorProfile[];
 }
 
+interface ContractorDashboard {
+  id: number;
+  fullName: string;
+  location: string;
+  services: string;
+  priceLevel: number;
+  jobStats: {
+    totalJobs: number;
+    pendingJobs: number;
+    acceptedJobs: number;
+    completedJobs: number;
+  };
+  reviews: {
+    averageRating: number;
+    reviewCount: number;
+  };
+  photoCount: number;
+  upcomingJobs: {
+    id: number;
+    description: string;
+    preferredDate: string;
+  }[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -109,6 +133,19 @@ export class ContractorService {
 
   updateContractorProfile(id: string, profile: Partial<ContractorProfile>): Observable<ContractorProfile> {
     return this.http.put<ContractorProfile>(`${this.apiUrl}/${id}`, profile);
+  }
+
+  getDashboard(): Observable<ContractorDashboard | null> {
+    return this.http.get<ContractorDashboard>(`${this.apiUrl}/dashboard`).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          // Return null if profile doesn't exist
+          return of(null);
+        }
+        console.error('Error fetching dashboard:', error);
+        throw error;
+      })
+    );
   }
 
   private processProfile(profile: ContractorProfile): ContractorProfile {
