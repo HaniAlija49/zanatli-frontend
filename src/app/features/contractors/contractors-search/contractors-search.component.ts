@@ -17,6 +17,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ContractorService } from '../../../core/services/contractor.service';
 import { ContractorProfile } from '../../../core/models/contractor.models';
 import { PhotoService, Photo } from '../../../core/services/photo.service';
+import { HostListener } from '@angular/core';
 
 interface PaginatedResponse {
   totalCount: number;
@@ -118,13 +119,15 @@ interface PaginatedResponse {
                 <mat-icon>star</mat-icon>
                 <span>{{contractor.averageRating.toFixed(1)}} <span class="review-count">({{contractor.reviewCount || 0}} {{contractor.reviewCount === 1 ? 'review' : 'reviews'}})</span></span>
               </div>
-              <div class="location-badge">
-                <mat-icon>location_on</mat-icon>
-                <span>{{contractor.location}}</span>
-              </div>
-              <div class="price-level">
-                <span class="label">Price:</span>
-                <span class="value">{{ contractor.priceLevel ? '$'.repeat(contractor.priceLevel) : '-' }}</span>
+              <div class="info-badges">
+                <div class="location-badge">
+                  <mat-icon>location_on</mat-icon>
+                  <span>{{contractor.location}}</span>
+                </div>
+                <div class="price-level">
+                  <span class="label">Price:</span>
+                  <span class="value">{{ contractor.priceLevel ? '$'.repeat(contractor.priceLevel) : '-' }}</span>
+                </div>
               </div>
             </div>
             <div class="bio" [matTooltip]="contractor.bio" [matTooltipDisabled]="!(contractor.bio && (contractor.bio.length || 0) > 120)">
@@ -277,12 +280,28 @@ interface PaginatedResponse {
       font-weight: 500;
     }
 
+    .results-container.cards .info-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .results-container.cards .info-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
     .results-container.cards .rating {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       color: #ffc107;
       font-size: 1rem;
+      margin: 0;
+      padding: 0;
     }
 
     .results-container.cards .rating .review-count {
@@ -297,10 +316,10 @@ interface PaginatedResponse {
       align-items: center;
       justify-content: center;
       gap: 0.3rem;
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 0.3rem 0.8rem;
-      font-size: 1rem;
-      min-height: 32px;
+      font-size: 0.95rem;
+      height: 32px;
       box-sizing: border-box;
       line-height: 1;
       white-space: nowrap;
@@ -329,9 +348,9 @@ interface PaginatedResponse {
 
     .results-container.cards .location-badge mat-icon,
     .results-container.cards .price-level mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
       margin-right: 2px;
       display: flex;
       align-items: center;
@@ -420,13 +439,13 @@ interface PaginatedResponse {
       gap: 0;
       border-radius: 12px;
       overflow: hidden;
-      height: 220px;
+      height: 180px;
       background: white;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .results-container.rows .card-header-flex {
-      flex: 0 0 220px;
+      flex: 0 0 240px;
       border: none;
       padding: 0;
       background: #f8f9fa;
@@ -460,10 +479,10 @@ interface PaginatedResponse {
 
     .results-container.rows .card-content-flex {
       flex: 1;
-      padding: 1.75rem;
+      padding: 1.25rem;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 0.75rem;
       background: white;
       position: relative;
     }
@@ -471,171 +490,158 @@ interface PaginatedResponse {
     .results-container.rows .name-row {
       display: flex;
       flex-direction: column;
-      gap: 0.3rem;
-      margin-bottom: 0.5rem;
+      gap: 0.2rem;
+      margin-bottom: 0.25rem;
     }
 
     .results-container.rows .contractor-name {
-      font-size: 1.4rem;
+      font-size: 1.25rem;
       font-weight: 600;
       color: #222;
     }
 
     .results-container.rows .company {
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: #1976d2;
       font-weight: 500;
     }
 
     .results-container.rows .info-row {
       display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .results-container.rows .info-badges {
+      display: flex;
       align-items: center;
-      gap: 1.5rem;
+      gap: 0.8rem;
       flex-wrap: wrap;
-      margin: 1rem 0;
     }
 
-    .results-container.rows .info-row {
-      margin-bottom: 1.5rem;
-    }
-
-    .results-container.rows .rating,
-    .results-container.cards .rating {
+    .results-container.rows .rating {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       color: #ffc107;
-      font-size: 1.1rem;
-      margin-right: 1rem;
-      padding: 0.5rem 0;
+      font-size: 1rem;
+      margin: 0;
+      padding: 0;
     }
 
-    .results-container.rows .rating .review-count,
-    .results-container.cards .rating .review-count {
+    .results-container.rows .rating .review-count {
       color: #666;
       font-size: 0.9em;
-      margin-left: 0.5em;
+      margin-left: 0.2em;
     }
 
     .results-container.rows .location-badge,
-    .results-container.rows .price-level,
-    .results-container.cards .location-badge,
-    .results-container.cards .price-level {
+    .results-container.rows .price-level {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      border-radius: 12px;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      height: 36px;
+      gap: 0.3rem;
+      border-radius: 8px;
+      padding: 0.3rem 0.8rem;
+      font-size: 0.95rem;
+      height: 32px;
       box-sizing: border-box;
       line-height: 1;
       white-space: nowrap;
-      margin: 0.5rem 0;
-      vertical-align: middle;
+      margin: 0;
     }
 
-    .results-container.rows .location-badge,
-    .results-container.cards .location-badge {
+    .results-container.rows .location-badge {
       background: #e3f2fd;
       color: #1976d2;
     }
 
-    .results-container.rows .price-level,
-    .results-container.cards .price-level {
+    .results-container.rows .price-level {
       background: #e8f5e9;
       color: #4CAF50;
     }
 
-    .results-container.rows .price-level .label,
-    .results-container.cards .price-level .label {
+    .results-container.rows .price-level .label {
       color: #666;
       font-weight: 500;
-      display: inline-block;
-      vertical-align: middle;
     }
 
-    .results-container.rows .price-level .value,
-    .results-container.cards .price-level .value {
+    .results-container.rows .price-level .value {
       color: #4CAF50;
       font-weight: 600;
-      display: inline-block;
-      vertical-align: middle;
     }
 
     .results-container.rows .location-badge mat-icon,
-    .results-container.rows .price-level mat-icon,
-    .results-container.cards .location-badge mat-icon,
-    .results-container.cards .price-level mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+    .results-container.rows .price-level mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
       margin-right: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
-      vertical-align: middle;
     }
 
     .results-container.rows .bio {
       margin: 0;
-      font-size: 1.1rem;
-      line-height: 1.6;
+      font-size: 1rem;
+      line-height: 1.4;
       color: #444;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
     }
 
     .results-container.rows .services {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
+      gap: 0.4rem;
       margin: 0;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
     }
 
     .results-container.rows .services mat-chip {
-      font-size: 0.95rem;
-      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
+      padding: 0.3rem 0.6rem;
+      height: 28px;
     }
 
     .results-container.rows .services .chip-content {
       display: flex;
       align-items: center;
-      gap: 0.3rem;
+      gap: 0.2rem;
     }
 
     .results-container.rows .services .service-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
     }
 
     .results-container.rows .more-services {
       color: #1976d2;
       font-weight: 500;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       align-self: center;
     }
 
     .results-container.rows .actions {
       position: absolute;
-      bottom: 1.75rem;
-      right: 1.75rem;
+      bottom: 1.25rem;
+      right: 1.25rem;
       display: flex;
       justify-content: flex-end;
     }
 
     .results-container.rows .actions a[mat-flat-button] {
       font-weight: 600;
-      font-size: 1.05rem;
-      border-radius: 8px;
+      font-size: 0.95rem;
+      border-radius: 6px;
       box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-      padding: 0.6rem 1.5rem;
+      padding: 0.5rem 1.25rem;
       background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%);
       color: #fff;
       transition: background 0.2s;
@@ -926,6 +932,96 @@ interface PaginatedResponse {
         padding: 0.5rem 1rem;
       }
     }
+    @media (max-width: 768px) {
+      .view-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+      }
+
+      .sort-field {
+        width: 100%;
+      }
+
+      .mat-button-toggle-group {
+        display: none; /* Hide view toggle on mobile */
+      }
+
+      .results-container.cards {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .results-container.cards .contractor-card {
+        min-height: auto;
+        height: auto;
+      }
+
+      .results-container.cards .card-header-flex {
+        padding: 1rem 1rem 0.5rem 1rem;
+        gap: 1rem;
+      }
+
+      .results-container.cards .profile-img-wrapper {
+        width: 70px;
+        height: 70px;
+      }
+
+      .results-container.cards .contractor-name {
+        font-size: 1.1rem;
+      }
+
+      .results-container.cards .company {
+        font-size: 0.95rem;
+      }
+
+      .results-container.cards .bio {
+        font-size: 0.95rem;
+        margin: 0.8rem 0 0.5rem 0;
+      }
+
+      .results-container.cards .services {
+        gap: 0.3rem;
+        margin-bottom: 0.8rem;
+      }
+
+      .results-container.cards .services mat-chip {
+        font-size: 0.85rem;
+        padding: 0.2rem 0.5rem;
+        height: 24px;
+      }
+
+      .results-container.cards .actions {
+        padding: 0 1rem 0.8rem 1rem;
+      }
+
+      .results-container.cards .actions a[mat-flat-button] {
+        font-size: 0.95rem;
+        padding: 0.4rem 1rem;
+      }
+
+      .search-container {
+        padding: 1rem;
+      }
+
+      .search-card {
+        margin-bottom: 1rem;
+      }
+
+      .search-bar-flex {
+        padding: 0.8rem;
+        gap: 0.8rem;
+      }
+
+      .search-field {
+        min-width: 0;
+      }
+
+      .search-btn {
+        height: 48px;
+        padding: 0 1rem;
+      }
+    }
   `]
 })
 export class ContractorsSearchComponent implements OnInit {
@@ -954,6 +1050,18 @@ export class ContractorsSearchComponent implements OnInit {
 
   ngOnInit() {
     this.loadContractors();
+    // Set initial view mode based on screen size
+    if (window.innerWidth <= 768) {
+      this.viewMode = 'cards';
+    }
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    // Force card view on mobile when window is resized
+    if (window.innerWidth <= 768) {
+      this.viewMode = 'cards';
+    }
   }
 
   onSortChange() {
@@ -1018,7 +1126,10 @@ export class ContractorsSearchComponent implements OnInit {
   }
 
   onViewModeChange() {
-    // View mode is handled by CSS classes
+    // Force card view on mobile
+    if (window.innerWidth <= 768) {
+      this.viewMode = 'cards';
+    }
   }
 
   onSearch() {
