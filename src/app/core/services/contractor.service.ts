@@ -4,6 +4,11 @@ import { Observable, catchError, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ContractorProfile, CreateContractorProfileDto, UpdateContractorProfileDto } from '../models/contractor.models';
 
+interface PaginatedResponse {
+  totalCount: number;
+  items: ContractorProfile[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -18,15 +23,22 @@ export class ContractorService {
     priceLevels?: number[],
     page: number = 1,
     pageSize: number = 10
-  ): Observable<ContractorProfile[] | { items: ContractorProfile[], totalItems: number }> {
-    let params = new HttpParams();
-    if (search) params = params.set('search', search);
-    if (location) params = params.set('location', location);
-    if (priceLevels?.length) params = params.set('priceLevels', priceLevels.join(','));
-    params = params.set('page', page.toString());
-    params = params.set('pageSize', pageSize.toString());
+  ): Observable<PaginatedResponse> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('pageSize', pageSize.toString());
 
-    return this.http.get<ContractorProfile[] | { items: ContractorProfile[], totalItems: number }>(`${this.apiUrl}`, { params });
+    if (search) {
+      params = params.set('search', search);
+    }
+    if (location) {
+      params = params.set('location', location);
+    }
+    if (priceLevels && priceLevels.length > 0) {
+      params = params.set('priceLevels', priceLevels.join(','));
+    }
+
+    return this.http.get<PaginatedResponse>(this.apiUrl, { params });
   }
 
   getContractor(id: string): Observable<ContractorProfile> {

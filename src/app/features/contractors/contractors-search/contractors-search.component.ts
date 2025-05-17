@@ -18,6 +18,11 @@ import { ContractorService } from '../../../core/services/contractor.service';
 import { ContractorProfile } from '../../../core/models/contractor.models';
 import { PhotoService, Photo } from '../../../core/services/photo.service';
 
+interface PaginatedResponse {
+  totalCount: number;
+  items: ContractorProfile[];
+}
+
 @Component({
   selector: 'app-contractors-search',
   standalone: true,
@@ -979,15 +984,15 @@ export class ContractorsSearchComponent implements OnInit {
       this.currentPage + 1,
       this.pageSize
     ).subscribe({
-      next: (response) => {
-        const contractors = Array.isArray(response) ? response : response.items;
-        this.contractors = contractors.map(contractor => {
+      next: (response: PaginatedResponse) => {
+        const contractors = response.items;
+        this.contractors = contractors.map((contractor: ContractorProfile) => {
           if (typeof contractor.services === 'string') {
             contractor.services = (contractor.services as string).split(',').map((s: string) => s.trim());
           }
           return contractor;
         });
-        this.totalItems = Array.isArray(response) ? contractors.length : response.totalItems;
+        this.totalItems = response.totalCount;
         this.loadProfilePhotos(this.contractors);
         this.onSortChange(); // Apply initial sort
         this.isLoading = false;
