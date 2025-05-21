@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -7,7 +7,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE, NativeDateAdapter } from '@angular/material/core';
+import { MatIconModule } from '@angular/material/icon';
 import { JobService } from '../../../core/services/job.service';
+import { JobPhotosComponent } from '../../../components/job-photos/job-photos.component';
 
 interface DialogData {
   contractorId: string;
@@ -37,7 +39,9 @@ export const MY_DATE_FORMATS = {
     MatInputModule,
     MatButtonModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatIconModule,
+    JobPhotosComponent
   ],
   providers: [
     { provide: DateAdapter, useClass: NativeDateAdapter },
@@ -68,6 +72,15 @@ export const MY_DATE_FORMATS = {
             Preferred date is required
           </mat-error>
         </mat-form-field>
+
+        <!-- Photos Section -->
+        <div class="photos-section">
+          <h3 class="section-title">
+            <mat-icon>photo_library</mat-icon>
+            Photos
+          </h3>
+          <app-job-photos [jobId]="'new'" [isNewJob]="true"></app-job-photos>
+        </div>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -86,11 +99,34 @@ export const MY_DATE_FORMATS = {
     mat-dialog-content {
       min-width: 400px;
     }
+
+    .photos-section {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #444;
+      margin-bottom: 1rem;
+    }
+
+    .section-title mat-icon {
+      color: #1976d2;
+    }
   `]
 })
 export class CreateJobDialogComponent {
   jobForm: FormGroup;
   isLoading = false;
+  @ViewChild(JobPhotosComponent) photosComponent!: JobPhotosComponent;
 
   constructor(
     private fb: FormBuilder,
@@ -116,7 +152,9 @@ export class CreateJobDialogComponent {
         contractorUserId: this.data.contractorId
       };
 
-      this.jobService.createJob(jobData).subscribe({
+      const photos = this.photosComponent?.getTempPhotos() || [];
+
+      this.jobService.createJob(jobData, photos).subscribe({
         next: () => {
           this.isLoading = false;
           this.dialogRef.close(true);

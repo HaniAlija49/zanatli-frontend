@@ -11,6 +11,7 @@ import { Job, JobStatus } from '../../../core/models/job.models';
 import { JobReviewFormComponent } from '../../../jobs/job-review-form/job-review-form.component';
 import { ReviewService } from '../../../core/services/review.service';
 import { Review } from '../../../core/models/review.models';
+import { JobPhotosComponent } from '../../../components/job-photos/job-photos.component';
 
 @Component({
   selector: 'app-job-details-dialog',
@@ -23,7 +24,8 @@ import { Review } from '../../../core/models/review.models';
     MatDividerModule,
     MatChipsModule,
     MatCardModule,
-    JobReviewFormComponent
+    JobReviewFormComponent,
+    JobPhotosComponent
   ],
   template: `
     <div class="dialog-container">
@@ -50,6 +52,15 @@ import { Review } from '../../../core/models/review.models';
                 </div>
                 <div *ngIf="!job.contractor">—</div>
               </span>
+            </div>
+            <mat-divider></mat-divider>
+            <!-- Photos Section -->
+            <div class="photos-section">
+              <h3 class="section-title">
+                <mat-icon>photo_library</mat-icon>
+                Photos
+              </h3>
+              <app-job-photos [jobId]="job.id.toString()"></app-job-photos>
             </div>
             <mat-divider *ngIf="isJobCompleted(job)"></mat-divider>
             <!-- Review Section -->
@@ -111,17 +122,32 @@ import { Review } from '../../../core/models/review.models';
     .status-completed { background-color: #e8f5e9; color: #4caf50; }
     .review-card { margin-top: 1rem; background: #fffde7; border: 1px solid #ffe082; border-radius: 10px; }
     .review-stars {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 0.5rem;
-  width: 100%;
-  height: auto; /* or specify an appropriate height like 24px */
-}
+      display: flex;
+      gap: 2px;
+      margin-bottom: 0.5rem;
+      width: 100%;
+      height: auto;
+    }
     .review-stars mat-icon { color: #FFD600; font-size: 24px; }
     .review-stars mat-icon:not(.filled) { color: #ccc; }
     .review-comment { margin-bottom: 0.5rem; color: #444; font-size: 1.08rem; }
     .review-date { color: #888; font-size: 0.95em; }
     mat-dialog-actions { margin-top: 16px; padding: 0 16px 16px 0; }
+    .photos-section {
+      margin-top: 1rem;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #444;
+      margin-bottom: 1rem;
+    }
+    .section-title mat-icon {
+      color: #1976d2;
+    }
   `]
 })
 export class JobDetailsDialogComponent implements OnInit {

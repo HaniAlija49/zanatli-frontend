@@ -153,7 +153,7 @@ import { Router } from '@angular/router';
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Services</mat-label>
+              <mat-label>Services (Press Enter or comma to add)</mat-label>
               <mat-chip-grid #chipGrid aria-label="Enter services">
                 <mat-chip-row *ngFor="let service of services" (removed)="removeService(service)">
                   {{service}}
@@ -161,12 +161,14 @@ import { Router } from '@angular/router';
                     <mat-icon>cancel</mat-icon>
                   </button>
                 </mat-chip-row>
-                <input placeholder="New service..."
+                <input placeholder="Add a service..."
                        [matChipInputFor]="chipGrid"
                        [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
                        (matChipInputTokenEnd)="addService($event)">
               </mat-chip-grid>
+              <mat-hint>Add at least one service by typing and pressing Enter or comma</mat-hint>
               <mat-error *ngIf="profileForm.get('services')?.hasError('required')">At least one service is required</mat-error>
+              <mat-error *ngIf="profileForm.get('services')?.hasError('minlength')">At least one service is required</mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
@@ -378,7 +380,10 @@ export class ContractorProfileComponent implements OnInit {
       companyName: ['', [Validators.required, Validators.minLength(2)]],
       location: ['', [Validators.required, Validators.minLength(2)]],
       bio: ['', [Validators.required, Validators.minLength(10)]],
-      services: ['', Validators.required],
+      services: this.fb.control([], {
+        validators: [Validators.required, Validators.minLength(1)],
+        nonNullable: true
+      }),
       priceLevel: [1, [Validators.required, Validators.min(1), Validators.max(3)]],
       phoneNumber: ['']
     });
@@ -413,7 +418,6 @@ export class ContractorProfileComponent implements OnInit {
           this.loadPortfolioImages();
           this.profileCreated = true;
         } else {
-          // Handle case when no profile exists
           this.profileForm.reset();
           this.services = [];
           this.profileCreated = false;
@@ -423,7 +427,6 @@ export class ContractorProfileComponent implements OnInit {
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading profile:', error);
         this.profile = null;
         this.profileCreated = false;
         this.profilePhotoUrl = null;
@@ -462,17 +465,14 @@ export class ContractorProfileComponent implements OnInit {
 
     this.http.get<any[]>(`${environment.apiUrl}/contractors/me/photos`).subscribe({
       next: (photos) => {
-        console.log('Profile photos response:', photos);
         const profilePhoto = photos.find(p => p.type === 0);
         if (profilePhoto) {
           this.profilePhotoUrl = `${environment.apiUrl}/contractors/${this.profile?.id}/photos/${profilePhoto.id}`;
-          console.log('Profile photo URL:', this.profilePhotoUrl);
         } else {
           this.profilePhotoUrl = null;
         }
       },
-      error: (error) => {
-        console.error('Error loading profile photo:', error);
+      error: () => {
         this.profilePhotoUrl = null;
       }
     });
@@ -486,14 +486,11 @@ export class ContractorProfileComponent implements OnInit {
 
     this.http.get<any[]>(`${environment.apiUrl}/contractors/me/photos`).subscribe({
       next: (photos) => {
-        console.log('Portfolio photos response:', photos);
         this.portfolioImages = photos
           .filter(p => p.type === 1)
           .map(p => `${environment.apiUrl}/contractors/${this.profile?.id}/photos/${p.id}`);
-        console.log('Portfolio images:', this.portfolioImages);
       },
-      error: (error) => {
-        console.error('Error loading portfolio images:', error);
+      error: () => {
         this.portfolioImages = [];
       }
     });
@@ -513,16 +510,12 @@ export class ContractorProfileComponent implements OnInit {
       this.isPhotoUploading = true;
 
       this.http.post<any>(`${environment.apiUrl}/contractors/me/photos?type=0`, formData).subscribe({
-        next: (res) => {
-          console.log('Photo upload response:', res);
+        next: () => {
           this.snackBar.open('Profile photo uploaded!', 'Close', { duration: 3000 });
-          
-          // After successful upload, reload the profile photo
           this.loadProfilePhoto();
           this.isPhotoUploading = false;
         },
-        error: (error) => {
-          console.error('Error uploading photo:', error);
+        error: () => {
           this.snackBar.open('Failed to upload photo.', 'Close', { duration: 3000 });
           this.isPhotoUploading = false;
         }
@@ -544,14 +537,12 @@ export class ContractorProfileComponent implements OnInit {
       this.isPortfolioUploading = true;
 
       this.http.post<any>(`${environment.apiUrl}/contractors/me/photos?type=1`, formData).subscribe({
-        next: (res) => {
-          console.log('Portfolio upload response:', res);
+        next: () => {
           this.snackBar.open('Portfolio image uploaded!', 'Close', { duration: 3000 });
-          this.loadPortfolioImages(); // Reload all portfolio images
+          this.loadPortfolioImages();
           this.isPortfolioUploading = false;
         },
-        error: (error) => {
-          console.error('Error uploading portfolio image:', error);
+        error: () => {
           this.snackBar.open('Failed to upload portfolio image.', 'Close', { duration: 3000 });
           this.isPortfolioUploading = false;
         }
@@ -575,7 +566,10 @@ export class ContractorProfileComponent implements OnInit {
     const value = (event.value || '').trim();
     if (value) {
       this.services.push(value);
-      this.profileForm.patchValue({ services: this.services });
+      const servicesControl = this.profileForm.get('services');
+      if (servicesControl) {
+        servicesControl.setValue([...this.services]);
+      }
     }
     event.chipInput!.clear();
   }
@@ -584,7 +578,10 @@ export class ContractorProfileComponent implements OnInit {
     const index = this.services.indexOf(service);
     if (index >= 0) {
       this.services.splice(index, 1);
-      this.profileForm.patchValue({ services: this.services });
+      const servicesControl = this.profileForm.get('services');
+      if (servicesControl) {
+        servicesControl.setValue([...this.services]);
+      }
     }
   }
 
@@ -593,42 +590,26 @@ export class ContractorProfileComponent implements OnInit {
       this.isLoading = true;
       const formData = this.profileForm.value;
       
-      // Ensure services is an array
-      const services = Array.isArray(formData.services) 
-        ? formData.services 
-        : formData.services.split(',').map((s: string) => s.trim()).filter(Boolean);
-
-      const data = {
-        ...formData,
-        services: services,
-        priceLevel: parseInt(formData.priceLevel, 10)
+      const data: CreateContractorProfileDto = {
+        fullName: formData.fullName,
+        companyName: formData.companyName,
+        location: formData.location,
+        bio: formData.bio,
+        services: this.services,
+        priceLevel: parseInt(formData.priceLevel, 10),
+        phoneNumber: formData.phoneNumber || undefined
       };
 
-      let request$;
-      if (this.profileCreated) {
-        request$ = this.contractorService.updateProfile(data as UpdateContractorProfileDto);
-      } else {
-        request$ = this.contractorService.createProfile(data as CreateContractorProfileDto);
-      }
-
-      request$.subscribe({
-        next: () => {
-          this.snackBar.open(
-            `Profile ${this.profileCreated ? 'updated' : 'created'} successfully!`,
-            'Close',
-            { duration: 5000 }
-          );
+      this.contractorService.createProfile(data).subscribe({
+        next: (profile) => {
+          this.snackBar.open('Profile created successfully!', 'Close', { duration: 5000 });
           this.isLoading = false;
-          this.isEditing = false;
-          this.loadProfile(); // Reload profile data
+          this.profile = profile;
+          this.profileCreated = true;
+          this.loadProfile();
         },
-        error: (error) => {
-          console.error(`Error ${this.profileCreated ? 'updating' : 'creating'} profile:`, error);
-          this.snackBar.open(
-            `Error ${this.profileCreated ? 'updating' : 'creating'} profile. Please try again.`,
-            'Close',
-            { duration: 5000 }
-          );
+        error: () => {
+          this.snackBar.open('Error creating profile. Please try again.', 'Close', { duration: 5000 });
           this.isLoading = false;
         }
       });

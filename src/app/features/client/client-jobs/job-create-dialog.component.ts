@@ -1,5 +1,5 @@
-import { Component, Inject, OnInit } from '@angular/core';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -10,6 +10,8 @@ import { CommonModule } from '@angular/common';
 import { JobService } from '../../../core/services/job.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatIconModule } from '@angular/material/icon';
+import { JobPhotosComponent } from '../../../components/job-photos/job-photos.component';
 
 export const MY_DATE_FORMATS = {
   parse: {
@@ -33,7 +35,10 @@ export const MY_DATE_FORMATS = {
     MatInputModule,
     MatButtonModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatIconModule,
+    JobPhotosComponent,
+    MatDialogModule
   ],
   providers: [
     { provide: DateAdapter, useClass: NativeDateAdapter },
@@ -42,37 +47,85 @@ export const MY_DATE_FORMATS = {
   ],
   template: `
     <h2 mat-dialog-title>Create New Job</h2>
-    <form [formGroup]="form" (ngSubmit)="onSubmit()">
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Description</mat-label>
-        <input matInput formControlName="description" required>
-        <mat-error *ngIf="form.get('description')?.hasError('required')">Description is required</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Preferred Date</mat-label>
-        <input matInput [matDatepicker]="picker" formControlName="preferredDate" required>
-        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-        <mat-datepicker #picker></mat-datepicker>
-        <mat-error *ngIf="form.get('preferredDate')?.hasError('required')">Preferred date is required</mat-error>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Contractor ID</mat-label>
-        <input matInput formControlName="contractorId" [readonly]="isContractorPreFilled">
-      </mat-form-field>
-      <div class="actions">
-        <button mat-button type="button" (click)="close()">Cancel</button>
-        <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">Create</button>
-      </div>
-    </form>
+    <mat-dialog-content>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <input matInput formControlName="description" required>
+          <mat-error *ngIf="form.get('description')?.hasError('required')">Description is required</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Preferred Date</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="preferredDate" required>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="form.get('preferredDate')?.hasError('required')">Preferred date is required</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Contractor ID</mat-label>
+          <input matInput formControlName="contractorId" [readonly]="isContractorPreFilled">
+        </mat-form-field>
+
+        <!-- Photos Section -->
+        <div class="photos-section">
+          <h3 class="section-title">
+            <mat-icon>photo_library</mat-icon>
+            Photos
+          </h3>
+          <app-job-photos [jobId]="'new'" [isNewJob]="true"></app-job-photos>
+        </div>
+
+        <div class="actions">
+          <button mat-button type="button" (click)="close()">Cancel</button>
+          <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">Create</button>
+        </div>
+      </form>
+    </mat-dialog-content>
   `,
   styles: [`
-    .full-width { width: 100%; margin-bottom: 1rem; }
-    .actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
+    :host {
+      display: block;
+      width: 100%;
+      max-width: 600px;
+    }
+    .full-width { 
+      width: 100%; 
+      margin-bottom: 1rem; 
+    }
+    .actions { 
+      display: flex; 
+      justify-content: flex-end; 
+      gap: 1rem; 
+      margin-top: 1rem; 
+    }
+    .photos-section {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #444;
+      margin-bottom: 1rem;
+    }
+    .section-title mat-icon {
+      color: #1976d2;
+    }
+    mat-dialog-content {
+      padding: 20px;
+    }
   `]
 })
 export class JobCreateDialogComponent implements OnInit {
   form: FormGroup;
   isContractorPreFilled = false;
+  @ViewChild(JobPhotosComponent) photosComponent!: JobPhotosComponent;
 
   constructor(
     private fb: FormBuilder,
@@ -102,13 +155,15 @@ export class JobCreateDialogComponent implements OnInit {
   onSubmit() {
     if (this.form.valid) {
       const value = this.form.getRawValue();
+      const photos = this.photosComponent?.getTempPhotos() || [];
+      
       this.jobService.createJob({
         description: value.description,
         preferredDate: value.preferredDate,
         contractorId: value.contractorId ? String(value.contractorId) : null
-      }).subscribe({
+      }, photos).subscribe({
         next: () => this.dialogRef.close('created'),
-        error: (err) => alert('Failed to create job: ' + (err?.error?.message || err.message || err))
+        error: (err) => this.snackBar.open('Failed to create job: ' + (err?.error?.message || err.message || err), 'Close', { duration: 5000 })
       });
     }
   }

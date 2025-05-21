@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Job, CreateJobDto, UpdateJobDto } from '../models/job.models';
+import { JobPhotoService } from '../../services/job-photo.service';
 
 @Injectable({
   providedIn: 'root'
@@ -10,7 +11,10 @@ import { Job, CreateJobDto, UpdateJobDto } from '../models/job.models';
 export class JobService {
   private apiUrl = `${environment.apiUrl}/jobs`;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private jobPhotoService: JobPhotoService
+  ) {}
 
   getJobs(): Observable<Job[]> {
     return this.http.get<Job[]>(this.apiUrl);
@@ -28,8 +32,32 @@ export class JobService {
     return this.http.get<Job>(`${this.apiUrl}/${id}`);
   }
 
-  createJob(job: CreateJobDto): Observable<Job> {
-    return this.http.post<Job>(this.apiUrl, job);
+  createJob(jobData: CreateJobDto, photos: File[] = []): Observable<Job> {
+    return new Observable<Job>(observer => {
+      this.http.post<Job>(`${this.apiUrl}`, jobData).subscribe({
+        next: (job) => {
+          if (photos && photos.length > 0) {
+            // Upload photos after job is created
+            Promise.all(
+              photos.map(photo => 
+                this.jobPhotoService.uploadPhoto(Number(job.id), photo).toPromise()
+              )
+            )
+              .then(() => {
+                observer.next(job);
+                observer.complete();
+              })
+              .catch(error => {
+                observer.error(error);
+              });
+          } else {
+            observer.next(job);
+            observer.complete();
+          }
+        },
+        error: (error) => observer.error(error)
+      });
+    });
   }
 
   updateJob(id: string, job: UpdateJobDto): Observable<Job> {

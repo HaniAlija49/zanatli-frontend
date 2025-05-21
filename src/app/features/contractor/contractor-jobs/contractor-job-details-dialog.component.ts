@@ -7,6 +7,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCardModule } from '@angular/material/card';
 import { JobDetails } from '../../../core/models/job-details.models';
+import { JobPhotosComponent } from '../../../components/job-photos/job-photos.component';
 
 @Component({
   selector: 'app-contractor-job-details-dialog',
@@ -18,7 +19,8 @@ import { JobDetails } from '../../../core/models/job-details.models';
     MatIconModule,
     MatDividerModule,
     MatChipsModule,
-    MatCardModule
+    MatCardModule,
+    JobPhotosComponent
   ],
   template: `
     <div class="dialog-container">
@@ -58,6 +60,15 @@ import { JobDetails } from '../../../core/models/job-details.models';
                 <div *ngIf="!data.job.contractor">—</div>
               </span>
             </div>
+            <mat-divider></mat-divider>
+            <!-- Photos Section -->
+            <div class="photos-section">
+              <h3 class="section-title">
+                <mat-icon>photo_library</mat-icon>
+                Photos
+              </h3>
+              <app-job-photos [jobId]="data.job.id.toString()"></app-job-photos>
+            </div>
             <mat-divider *ngIf="data.job.declineReason || data.job.responseMessage"></mat-divider>
             <div class="row" *ngIf="data.job.declineReason"><span class="label"><mat-icon>highlight_off</mat-icon> Decline Reason:</span> <span>{{ data.job.declineReason }}</span></div>
             <div class="row" *ngIf="data.job.responseMessage"><span class="label"><mat-icon>message</mat-icon> Response Message:</span> <span>{{ data.job.responseMessage }}</span></div>
@@ -83,6 +94,21 @@ import { JobDetails } from '../../../core/models/job-details.models';
     .status-declined { background-color: #ffebee; color: #f44336; }
     .status-completed { background-color: #e8f5e9; color: #4caf50; }
     mat-dialog-actions { margin-top: 16px; padding: 0 16px 16px 0; }
+    .photos-section {
+      margin-top: 1rem;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #444;
+      margin-bottom: 1rem;
+    }
+    .section-title mat-icon {
+      color: #1976d2;
+    }
   `]
 })
 export class ContractorJobDetailsDialogComponent {
