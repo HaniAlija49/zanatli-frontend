@@ -8,6 +8,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatCardModule } from '@angular/material/card';
 import { JobDetails } from '../../../core/models/job-details.models';
 import { JobPhotosComponent } from '../../../components/job-photos/job-photos.component';
+import { JobService } from '../../../core/services/job.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-contractor-job-details-dialog',
@@ -77,6 +79,30 @@ import { JobPhotosComponent } from '../../../components/job-photos/job-photos.co
       </mat-dialog-content>
       <mat-dialog-actions align="end">
         <button mat-raised-button color="primary" (click)="onClose()">Close</button>
+        <button *ngIf="data.job.status === 0" 
+                mat-raised-button 
+                color="accent" 
+                (click)="onAccept()">
+          Accept Job
+        </button>
+        <button *ngIf="data.job.status === 0" 
+                mat-raised-button 
+                color="warn" 
+                (click)="onDecline()">
+          Decline Job
+        </button>
+        <button *ngIf="data.job.status === 1" 
+                mat-raised-button 
+                color="primary" 
+                (click)="onComplete()">
+          Complete Job
+        </button>
+        <button *ngIf="data.job.status === 2" 
+                mat-raised-button 
+                color="accent" 
+                (click)="onReconsider()">
+          Reconsider & Accept
+        </button>
       </mat-dialog-actions>
     </div>
   `,
@@ -125,10 +151,70 @@ export class ContractorJobDetailsDialogComponent {
 
   constructor(
     public dialogRef: MatDialogRef<ContractorJobDetailsDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { job: JobDetails }
+    @Inject(MAT_DIALOG_DATA) public data: { job: JobDetails },
+    private jobService: JobService,
+    private snackBar: MatSnackBar
   ) {}
 
   onClose(): void {
     this.dialogRef.close();
+  }
+
+  onAccept(): void {
+    this.jobService.acceptJob(this.data.job.id.toString()).subscribe({
+      next: () => {
+        this.snackBar.open('Job accepted successfully', 'Close', { duration: 3000 });
+        this.dialogRef.close('updated');
+      },
+      error: (error) => {
+        console.error('Error accepting job:', error);
+        this.snackBar.open('Error accepting job. Please try again.', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  onDecline(): void {
+    const reason = prompt('Please provide a reason for declining this job:');
+    if (reason) {
+      this.jobService.declineJob(this.data.job.id.toString(), reason).subscribe({
+        next: () => {
+          this.snackBar.open('Job declined successfully', 'Close', { duration: 3000 });
+          this.dialogRef.close('updated');
+        },
+        error: (error) => {
+          console.error('Error declining job:', error);
+          this.snackBar.open('Error declining job. Please try again.', 'Close', { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  onComplete(): void {
+    this.jobService.completeJob(this.data.job.id.toString()).subscribe({
+      next: () => {
+        this.snackBar.open('Job marked as completed successfully', 'Close', { duration: 3000 });
+        this.dialogRef.close('updated');
+      },
+      error: (error) => {
+        console.error('Error completing job:', error);
+        this.snackBar.open('Error completing job. Please try again.', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  onReconsider(): void {
+    const confirmMessage = 'Are you sure you want to reconsider and accept this job?';
+    if (confirm(confirmMessage)) {
+      this.jobService.acceptJob(this.data.job.id.toString()).subscribe({
+        next: () => {
+          this.snackBar.open('Job reconsidered and accepted successfully', 'Close', { duration: 3000 });
+          this.dialogRef.close('updated');
+        },
+        error: (error) => {
+          console.error('Error reconsidering job:', error);
+          this.snackBar.open('Error reconsidering job. Please try again.', 'Close', { duration: 3000 });
+        }
+      });
+    }
   }
 } 

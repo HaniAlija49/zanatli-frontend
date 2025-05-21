@@ -130,14 +130,6 @@ import { AuthService } from '../../../core/services/auth.service';
               <mat-icon>add</mat-icon>
               Create Job Request
             </button>
-            <button mat-stroked-button color="primary" class="contact-btn" *ngIf="contractor.phoneNumber">
-              <mat-icon>phone</mat-icon>
-              Call
-            </button>
-            <button mat-stroked-button color="primary" class="contact-btn">
-              <mat-icon>message</mat-icon>
-              Message
-            </button>
           </div>
         </mat-card-content>
       </mat-card>
@@ -349,7 +341,7 @@ import { AuthService } from '../../../core/services/auth.service';
       justify-content: flex-end;
     }
 
-    .create-job-btn, .contact-btn {
+    .create-job-btn {
       padding: 0.5rem 1.5rem;
       font-weight: 600;
       border-radius: 8px;
@@ -359,11 +351,11 @@ import { AuthService } from '../../../core/services/auth.service';
       transition: background 0.2s;
     }
 
-    .create-job-btn mat-icon, .contact-btn mat-icon {
+    .create-job-btn mat-icon {
       margin-right: 0.5rem;
     }
 
-    .create-job-btn:hover, .contact-btn:hover {
+    .create-job-btn:hover {
       background: linear-gradient(90deg, #1565c0 0%, #1976d2 100%);
       color: #fff;
     }
